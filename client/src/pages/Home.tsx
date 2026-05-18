@@ -7,8 +7,10 @@ interface Job {
   jobDescription: string;
   salesman: string;
   technician: string;
+  status: string;
 }
 
+const statuses = ["Waiting", "In Progress", "Done"];
 const salesmen = ["Mazin", "Frank", "Oscar", "Nasser", "Luis", "Adam"];
 const technicians = [
   "Habibi",
@@ -39,6 +41,7 @@ export default function Home() {
         jobDescription: "",
         salesman: "",
         technician: "",
+        status: "",
       },
     ]);
   }
@@ -137,6 +140,27 @@ export default function Home() {
                   className="w-full border-2 border-gray-300 rounded px-3 py-2 text-lg focus:border-blue-500 focus:outline-none"
                 />
               </div>
+            </div>
+
+            {/* Status */}
+            <div className="mb-4">
+              <label className="block text-sm font-bold text-gray-700 mb-1">
+                Status
+              </label>
+              <select
+                value={job.status}
+                onChange={(e) =>
+                  updateJob(job.id, "status", e.target.value)
+                }
+                className="w-full border-2 border-gray-300 rounded px-3 py-2 text-lg bg-white focus:border-blue-500 focus:outline-none"
+              >
+                <option value="">-- Pick --</option>
+                {statuses.map((s) => (
+                  <option key={s} value={s}>
+                    {s}
+                  </option>
+                ))}
+              </select>
             </div>
 
             {/* Salesman (bottom left) and Technician (bottom right) */}
