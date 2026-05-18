@@ -1,0 +1,35 @@
+{
+  "build_command": "pnpm run build",
+  "capabilities": [],
+  "dev_command": "pnpm run dev",
+  "env_vars": {},
+  "experiments": null,
+  "git_remote": {
+    "repo_url": "s3://vida-prod-gitrepo/webdev-git/310519663635371295/hbZZET9AbQrHVnAYEv7zPJ",
+    "access_key_id": "ASIAZV3A2ECZP7GNGMWP",
+    "secret_access_key": "Q9D1QTn2Gb8VyUmyns/QACvX4j5EQ5oCH7+EGiOo",
+    "session_token": "IQoJb3JpZ2luX2VjEOr//////////wEaCXVzLWVhc3QtMSJGMEQCIHChIzMqau933P2s+ZaXnnUljM/2ywThbTqMuKM8QeoyAiBHKAg0tvxC2bLETobXJoliXXEx8wCmKps6ydADyElsGyr/Awiz//////////8BEAQaDDY2NTM4NjA5ODg2NiIMmX8qgNpcM4bQVoXGKtMDMtLHdKO0AnLHXb7ec4IPpZzOkGU4Enaua2rS1hV4unFCrjalGNS8W99UFIp5tzJh54/j5bNsXTRzounrgI2Qmcynp1sjq2l/FHnrbiMpz32yUv6AolPhXJXZiX7UvLd68H+K/v+82ThNJcDAeh0HFKejn5pYkTuwFc5pK1vkp/Y09KcVZ8SSUWwzdEzHerGVX4p8bz+vfG9tbY4g7JIek0G+TY4lyf1R+oQ+SAtKf0KAG6PZw7GOlGgVVLFty1iOY3fOlr/lCCntufqi/Y+uizHGoPfNU6xmCoFZzVy3q4OS3AkHPqbc/J/NFR9JgQtg2QJ5RMoTWgU1u3+jOQvMfQGvSHpQhL6yX2MCz3Of7VoHC0J1r28Eij75QPulyEF13S6jjOs1eZRwa9VPGpI5GqQ5mrcoYLWXQ6aVph5VRLeEduLI7ZUzzmRuTI6DFTncIKjqpu1xwaVbfX3AAKxP0vcBHqvV0gOZbFresdRIpv+g8cuSI/jKI642ADWvhF01ozvr/ZkSXSBBNnFtVkdsRG/NouodnLANF0m5zgXjH1WSS5EVJ67uerKmZRhnI4jCP/z0GXYIdFMKmbItshwW2A5zlgYMOCkhRj5D6V2jTbIdft4wv9ip0AY6ngHSKDC/C+Sl3uv/GDy5Lb2gCNgIKFJkkXNjEKncJkDOxvBF2tHHeE+IeAxJv9yR51MA0pb3udnb+9vZFvjjEpv6YTqcSstL5R0cE/1CKlsPJg5Ub73BmIUsHJj/3+yMYMKcjKR8MB+MxJDsquSx/tVsyOxednhGEMryp6ciX7j26XPYOpg4A1craAmZbRVaSBgbbO+2WTTToLB26Ntxsw==",
+    "expiration": "2026-05-18T13:32:47.000Z"
+  },
+  "name": "bnc_work_orders",
+  "path": "/home/ubuntu/bnc_work_orders",
+  "port": 3000,
+  "secrets": {
+    "BUILT_IN_FORGE_API_KEY": "XqfQPLkScyjZ92qGMHq37N",
+    "BUILT_IN_FORGE_API_URL": "https://forge.manus.ai",
+    "JWT_SECRET": "Cy6gzjHM3Ce3mDbtEV6XmB",
+    "OAUTH_SERVER_URL": "https://api.manus.im",
+    "OWNER_NAME": "Nasser Awad",
+    "OWNER_OPEN_ID": "KqAcxAM2sgPAhhjvjT2KGR",
+    "VITE_ANALYTICS_ENDPOINT": "https://manus-analytics.com",
+    "VITE_ANALYTICS_WEBSITE_ID": "326b73e7-1dff-477f-aa2b-18918d827897",
+    "VITE_APP_ID": "hbZZET9AbQrHVnAYEv7zPJ",
+    "VITE_APP_LOGO": "",
+    "VITE_APP_TITLE": "BNC Work Orders",
+    "VITE_FRONTEND_FORGE_API_KEY": "bNP6RaRUzvgddhkEaNKY7B",
+    "VITE_FRONTEND_FORGE_API_URL": "https://forge.manus.ai",
+    "VITE_OAUTH_PORTAL_URL": "https://manus.im"
+  },
+  "template_id": "web-static",
+  "test_command": "pnpm test"
+}
