@@ -22,7 +22,7 @@ const statusLabel: Record<Job["status"], string> = {
 
 const technicians = ["Habibi", "Maro", "Luis Jr", "Ivan", "Eric", "Dale", "Gary", "Angel", "Jimmy", "Big Junior", "Manuel"];
 
-type SortKey = "jobNumber" | "customerName" | "vehicle" | "status" | "techAssigned" | "totalEstimate";
+type SortKey = "jobNumber" | "customerName" | "vehicle" | "status" | "techAssigned";
 type SortDir = "asc" | "desc";
 
 export default function Dashboard() {
@@ -84,7 +84,7 @@ export default function Dashboard() {
         case "vehicle": aVal = `${a.vehicle.make} ${a.vehicle.model}`.toLowerCase(); bVal = `${b.vehicle.make} ${b.vehicle.model}`.toLowerCase(); break;
         case "status": aVal = a.status; bVal = b.status; break;
         case "techAssigned": aVal = a.techAssigned.toLowerCase(); bVal = b.techAssigned.toLowerCase(); break;
-        case "totalEstimate": aVal = a.totalEstimate; bVal = b.totalEstimate; break;
+
       }
       if (aVal < bVal) return sortDir === "asc" ? -1 : 1;
       if (aVal > bVal) return sortDir === "asc" ? 1 : -1;
@@ -106,15 +106,13 @@ export default function Dashboard() {
   const inProgress = allJobs.filter((j) => j.status === "in-progress").length;
   const ready = allJobs.filter((j) => j.status === "ready").length;
   const today = new Date().toDateString();
-  const todayRevenue = allJobs
-    .filter((j) => new Date(j.createdAt).toDateString() === today)
-    .reduce((sum, j) => sum + j.totalEstimate, 0);
+  const completedToday = allJobs.filter((j) => j.status === "complete" && new Date(j.createdAt).toDateString() === today).length;
 
   const stats = [
     { label: "Total Jobs", value: totalJobs },
     { label: "In Progress", value: inProgress },
     { label: "Ready for Pickup", value: ready },
-    { label: "Today's Revenue", value: `$${todayRevenue.toLocaleString()}` },
+    { label: "Completed Today", value: completedToday },
   ];
 
   const selectStyle: React.CSSProperties = {
@@ -134,7 +132,7 @@ export default function Dashboard() {
     { key: "vehicle", label: "Vehicle" },
     { key: "status", label: "Status" },
     { key: "techAssigned", label: "Tech" },
-    { key: "totalEstimate", label: "Est." },
+
   ];
 
   return (
@@ -234,13 +232,13 @@ export default function Dashboard() {
                   </span>
                 </td>
                 <td style={{ padding: "12px 14px", color: "var(--color-text-muted)" }}>{job.techAssigned}</td>
-                <td style={{ padding: "12px 14px", color: "var(--color-text)" }}>${job.totalEstimate.toLocaleString()}</td>
+
                 <td style={{ padding: "12px 14px", color: "var(--color-text-muted)" }}>{job.serviceTypes.join(", ")}</td>
               </tr>
             ))}
             {jobs.length === 0 && (
               <tr>
-                <td colSpan={7} style={{ padding: 32, textAlign: "center", color: "var(--color-text-muted)" }}>
+                <td colSpan={6} style={{ padding: 32, textAlign: "center", color: "var(--color-text-muted)" }}>
                   No jobs match your filters.
                 </td>
               </tr>

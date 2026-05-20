@@ -1,9 +1,9 @@
 // ─── Types ────────────────────────────────────────────────────────────────────
 
 export interface PartsLine {
+  partNumber: string;
   description: string;
   qty: number;
-  unitPrice: number;
 }
 
 export interface Job {
@@ -17,8 +17,6 @@ export interface Job {
   techAssigned: string;
   salesperson: string;
   partsLines: PartsLine[];
-  laborHours: number;
-  totalEstimate: number;
   createdAt: string;
   notes: string;
   damage: string;
@@ -142,9 +140,7 @@ function seedJobs(): Job[] {
       serviceTypes: ["Window Tint"],
       techAssigned: "Habibi",
       salesperson: "Mazin",
-      partsLines: [{ description: "Ceramic Tint Roll 20%", qty: 1, unitPrice: 85 }],
-      laborHours: 2,
-      totalEstimate: 250,
+      partsLines: [{ partNumber: "CT-20", description: "Ceramic Tint Roll 20%", qty: 1 }],
       createdAt: new Date().toISOString(),
       notes: "Customer wants 20% all around, no windshield strip.",
       damage: "",
@@ -161,11 +157,9 @@ function seedJobs(): Job[] {
       techAssigned: "Maro",
       salesperson: "Frank",
       partsLines: [
-        { description: "PPF Full Hood", qty: 1, unitPrice: 450 },
-        { description: "Ceramic Coat Kit", qty: 1, unitPrice: 120 },
+        { partNumber: "PPF-H1", description: "PPF Full Hood", qty: 1 },
+        { partNumber: "CC-KIT", description: "Ceramic Coat Kit", qty: 1 },
       ],
-      laborHours: 5,
-      totalEstimate: 1200,
       createdAt: new Date(Date.now() - 86400000).toISOString(),
       notes: "Rush job — customer picking up Friday.",
       damage: "Small rock chip on hood, noted before PPF.",
@@ -182,10 +176,8 @@ function seedJobs(): Job[] {
       techAssigned: "Ivan",
       salesperson: "Oscar",
       partsLines: [
-        { description: "Satin Black Vinyl 60ft", qty: 1, unitPrice: 600 },
+        { partNumber: "VW-SB60", description: "Satin Black Vinyl 60ft", qty: 1 },
       ],
-      laborHours: 8,
-      totalEstimate: 2800,
       createdAt: new Date(Date.now() - 172800000).toISOString(),
       notes: "Full body satin black wrap. Mirrors and handles included.",
       damage: "",

@@ -119,10 +119,9 @@ export default function JobDetail() {
       </div>
       ${job!.partsLines.length > 0 ? `
       <div class="section-title">Parts & Labor</div>
-      <table><thead><tr><th>Description</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead><tbody>
-      ${job!.partsLines.map((p) => `<tr><td>${p.description}</td><td>${p.qty}</td><td>$${p.unitPrice.toFixed(2)}</td><td>$${(p.qty * p.unitPrice).toFixed(2)}</td></tr>`).join("")}
-      </tbody></table>
-      <div class="total-row">Estimate Total: $${job!.totalEstimate.toLocaleString()}</div>` : ''}
+      <table><thead><tr><th>Part #</th><th>Description</th><th>Qty</th></tr></thead><tbody>
+      ${job!.partsLines.map((p: any) => `<tr><td>${p.partNumber || '\u2014'}</td><td>${p.description}</td><td>${p.qty}</td></tr>`).join("")}
+      </tbody></table>` : ''}
       ${job!.notes ? `<div class="section-title">Notes</div><p style="font-size:13px;line-height:1.5;">${job!.notes}</p>` : ''}
       ${job!.damage ? `<div class="section-title">Damage</div><p style="font-size:13px;line-height:1.5;">${job!.damage}</p>` : ''}
       <div class="signature">
@@ -249,26 +248,21 @@ export default function JobDetail() {
           <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13, marginTop: 8 }}>
             <thead>
               <tr style={{ borderBottom: "1px solid var(--color-border)" }}>
+                <th style={{ textAlign: "left", padding: "8px 0", color: "var(--color-text-muted)", fontWeight: 500 }}>Part #</th>
                 <th style={{ textAlign: "left", padding: "8px 0", color: "var(--color-text-muted)", fontWeight: 500 }}>Description</th>
                 <th style={{ textAlign: "center", padding: "8px 0", color: "var(--color-text-muted)", fontWeight: 500 }}>Qty</th>
-                <th style={{ textAlign: "right", padding: "8px 0", color: "var(--color-text-muted)", fontWeight: 500 }}>Unit Price</th>
-                <th style={{ textAlign: "right", padding: "8px 0", color: "var(--color-text-muted)", fontWeight: 500 }}>Total</th>
               </tr>
             </thead>
             <tbody>
               {job.partsLines.map((p, i) => (
                 <tr key={i} style={{ borderBottom: "1px solid var(--color-border)" }}>
+                  <td style={{ padding: "8px 0", color: "var(--color-text-muted)" }}>{(p as any).partNumber || "—"}</td>
                   <td style={{ padding: "8px 0", color: "var(--color-text)" }}>{p.description}</td>
                   <td style={{ padding: "8px 0", color: "var(--color-text)", textAlign: "center" }}>{p.qty}</td>
-                  <td style={{ padding: "8px 0", color: "var(--color-text)", textAlign: "right" }}>${p.unitPrice}</td>
-                  <td style={{ padding: "8px 0", color: "var(--color-text)", textAlign: "right" }}>${p.qty * p.unitPrice}</td>
                 </tr>
               ))}
             </tbody>
           </table>
-          <div style={{ textAlign: "right", marginTop: 12, fontSize: 16, fontWeight: 700, color: "var(--color-text)", fontFamily: "var(--font-heading)" }}>
-            Estimate: ${job.totalEstimate.toLocaleString()}
-          </div>
         </div>
       )}
 

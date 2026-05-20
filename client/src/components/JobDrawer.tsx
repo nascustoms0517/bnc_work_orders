@@ -88,7 +88,7 @@ export default function JobDrawer({ open, onClose, editJob }: Props) {
 
   const [services, setServices] = useState<string[]>([]);
 
-  const [partsLines, setPartsLines] = useState<{ partNum: string; description: string; qty: number; price: number }[]>([]);
+  const [partsLines, setPartsLines] = useState<{ partNum: string; description: string; qty: number }[]>([]);
 
   const [tech, setTech] = useState("");
   const [salesperson, setSalesperson] = useState("");
@@ -109,7 +109,7 @@ export default function JobDrawer({ open, onClose, editJob }: Props) {
       setColor("");
       setFactoryAmp(false);
       setServices([...editJob.serviceTypes]);
-      setPartsLines(editJob.partsLines.map((p) => ({ partNum: "", description: p.description, qty: p.qty, price: p.unitPrice })));
+      setPartsLines(editJob.partsLines.map((p) => ({ partNum: (p as any).partNumber || "", description: p.description, qty: p.qty })));
       setTech(editJob.techAssigned);
       setSalesperson(editJob.salesperson);
       setPromiseDate("");
@@ -129,7 +129,7 @@ export default function JobDrawer({ open, onClose, editJob }: Props) {
   }
 
   function addPartLine() {
-    setPartsLines([...partsLines, { partNum: "", description: "", qty: 1, price: 0 }]);
+    setPartsLines([...partsLines, { partNum: "", description: "", qty: 1 }]);
   }
 
   function updatePartLine(idx: number, field: string, value: string | number) {
@@ -140,7 +140,6 @@ export default function JobDrawer({ open, onClose, editJob }: Props) {
     setPartsLines(partsLines.filter((_, i) => i !== idx));
   }
 
-  const partsTotal = partsLines.reduce((sum, p) => sum + p.qty * p.price, 0);
 
   function handleSave() {
     if (editJob) {
@@ -152,8 +151,7 @@ export default function JobDrawer({ open, onClose, editJob }: Props) {
         serviceTypes: services,
         techAssigned: tech,
         salesperson,
-        partsLines: partsLines.map((p) => ({ description: p.description || p.partNum, qty: p.qty, unitPrice: p.price })),
-        totalEstimate: partsTotal || editJob.totalEstimate,
+        partsLines: partsLines.map((p) => ({ partNumber: p.partNum, description: p.description || p.partNum, qty: p.qty })),
         notes,
         damage,
       };
@@ -175,9 +173,7 @@ export default function JobDrawer({ open, onClose, editJob }: Props) {
       serviceTypes: services,
       techAssigned: tech,
       salesperson,
-      partsLines: partsLines.map((p) => ({ description: p.description || p.partNum, qty: p.qty, unitPrice: p.price })),
-      laborHours: 0,
-      totalEstimate: partsTotal,
+      partsLines: partsLines.map((p) => ({ partNumber: p.partNum, description: p.description || p.partNum, qty: p.qty })),
       createdAt: new Date().toISOString(),
       notes,
       damage,
@@ -321,7 +317,7 @@ export default function JobDrawer({ open, onClose, editJob }: Props) {
           {/* 4. Parts & Labor */}
           <Accordion title="Parts & Labor">
             {partsLines.map((line, idx) => (
-              <div key={idx} style={{ display: "grid", gridTemplateColumns: "80px 1fr 50px 80px 30px", gap: 6, marginBottom: 8, alignItems: "end" }}>
+              <div key={idx} style={{ display: "grid", gridTemplateColumns: "80px 1fr 50px 30px", gap: 6, marginBottom: 8, alignItems: "end" }}>
                 <div>
                   <label style={labelStyle}>Part #</label>
                   <input style={inputStyle} value={line.partNum} onChange={(e) => updatePartLine(idx, "partNum", e.target.value)} />
@@ -333,10 +329,6 @@ export default function JobDrawer({ open, onClose, editJob }: Props) {
                 <div>
                   <label style={labelStyle}>Qty</label>
                   <input style={inputStyle} type="number" min={1} value={line.qty} onChange={(e) => updatePartLine(idx, "qty", Number(e.target.value))} />
-                </div>
-                <div>
-                  <label style={labelStyle}>Price</label>
-                  <input style={inputStyle} type="number" min={0} value={line.price} onChange={(e) => updatePartLine(idx, "price", Number(e.target.value))} />
                 </div>
                 <button
                   type="button"
@@ -366,11 +358,7 @@ export default function JobDrawer({ open, onClose, editJob }: Props) {
             >
               <Plus size={14} /> Add Line Item
             </button>
-            {partsLines.length > 0 && (
-              <div style={{ marginTop: 12, textAlign: "right", fontSize: 14, color: "var(--color-text)", fontWeight: 600 }}>
-                Total: ${partsTotal.toLocaleString()}
-              </div>
-            )}
+
           </Accordion>
 
           {/* 5. Assignment */}
