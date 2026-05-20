@@ -32,9 +32,14 @@ function Sidebar() {
   const [location] = useLocation();
   const { currentUser, logout } = useAuth();
 
-  // Unread DM count
+  // Unread DM count — uses both legacy name field and new userId field
   const dms = getDMs();
-  const unreadCount = dms.filter((m) => m.toUser === (currentUser?.name || "You") && !m.read).length;
+  const myId = currentUser?.id || "";
+  const myName = currentUser?.name || "";
+  const unreadCount = dms.filter((m) => {
+    const isToMe = (m as any).toUserId === myId || m.toUser === myName;
+    return isToMe && !m.read;
+  }).length;
 
   return (
     <nav

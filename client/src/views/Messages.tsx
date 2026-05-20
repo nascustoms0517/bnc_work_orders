@@ -1,136 +1,162 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { getDMs, saveDM, type DM } from "@/data/store";
+import { getUsers, type User } from "@/data/users";
+import { useAuth } from "@/contexts/AuthContext";
 import { Send } from "lucide-react";
-import { useToast } from "@/components/Toast";
 
-const CURRENT_USER = "You";
-
-interface StaffMember {
-  name: string;
-  role: "Sales" | "Tech" | "Manager";
-  initials: string;
-  color: string;
-}
-
-const staff: StaffMember[] = [
-  { name: "Mazin", role: "Sales", initials: "MZ", color: "#E85D24" },
-  { name: "Frank", role: "Sales", initials: "FK", color: "#3B82F6" },
-  { name: "Habibi", role: "Tech", initials: "HB", color: "#22C55E" },
-  { name: "Maro", role: "Tech", initials: "MR", color: "#A855F7" },
-  { name: "Ivan", role: "Tech", initials: "IV", color: "#EAB308" },
-  { name: "Dale", role: "Manager", initials: "DL", color: "#EC4899" },
-];
-
-const roleColors: Record<string, { bg: string; text: string }> = {
-  Sales: { bg: "rgba(59,130,246,0.15)", text: "#3B82F6" },
-  Tech: { bg: "rgba(34,197,94,0.15)", text: "#22C55E" },
-  Manager: { bg: "rgba(236,72,153,0.15)", text: "#EC4899" },
+const roleBadge: Record<string, { bg: string; text: string }> = {
+  manager: { bg: "rgba(232,93,36,0.15)", text: "#E85D24" },
+  salesperson: { bg: "rgba(59,130,246,0.15)", text: "#3B82F6" },
+  tech: { bg: "rgba(34,197,94,0.15)", text: "#22C55E" },
+  tinter: { bg: "rgba(168,85,247,0.15)", text: "#A855F7" },
 };
 
-function uid() {
-  return Math.random().toString(36).slice(2, 10) + Date.now().toString(36);
+// Extended DM with userId fields
+interface ExtDM extends DM {
+  fromUserId?: string;
+  toUserId?: string;
 }
 
 export default function Messages() {
-  const [selected, setSelected] = useState<string>(staff[0].name);
-  const [dms, setDms] = useState<DM[]>(getDMs());
+  const { currentUser } = useAuth();
+  const myId = currentUser?.id || "";
+  const [dms, setDms] = useState<ExtDM[]>(getDMs() as ExtDM[]);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
   const [input, setInput] = useState("");
-  const chatEndRef = useRef<HTMLDivElement>(null);
+  const threadEndRef = useRef<HTMLDivElement>(null);
 
-  // Get thread between current user and selected staff
-  function getThread(person: string) {
+  // All staff except me
+  const staff = useMemo(() => getUsers().filter((u) => u.id !== myId), [myId]);
+
+  // Get thread between me and a person
+  function getThread(personId: string): ExtDM[] {
     return dms
       .filter(
         (m) =>
-          (m.fromUser === CURRENT_USER && m.toUser === person) ||
-          (m.fromUser === person && m.toUser === CURRENT_USER)
+          (m.fromUserId === myId && m.toUserId === personId) ||
+          (m.fromUserId === personId && m.toUserId === myId)
       )
       .sort((a, b) => new Date(a.timestamp).getTime() - new Date(b.timestamp).getTime());
   }
 
-  // Unread count for a person (messages FROM them that are unread)
-  function unreadCount(person: string) {
+  // Last message with a person
+  function lastMessage(personId: string): ExtDM | undefined {
+    const thread = getThread(personId);
+    return thread.length > 0 ? thread[thread.length - 1] : undefined;
+  }
+
+  // Unread count from a person
+  function unreadFrom(personId: string): number {
     return dms.filter(
-      (m) => m.fromUser === person && m.toUser === CURRENT_USER && !m.read
+      (m) => m.fromUserId === personId && m.toUserId === myId && !m.read
     ).length;
   }
 
+  // Sort staff: most recent message first, then alphabetical for those with no messages
+  const sortedStaff = useMemo(() => {
+    return [...staff].sort((a, b) => {
+      const lastA = lastMessage(a.id);
+      const lastB = lastMessage(b.id);
+      if (lastA && lastB) {
+        return new Date(lastB.timestamp).getTime() - new Date(lastA.timestamp).getTime();
+      }
+      if (lastA && !lastB) return -1;
+      if (!lastA && lastB) return 1;
+      return a.name.localeCompare(b.name);
+    });
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [staff, dms]);
+
   // Mark messages as read when selecting a thread
   useEffect(() => {
-    const updated = dms.map((m) =>
-      m.fromUser === selected && m.toUser === CURRENT_USER && !m.read
-        ? { ...m, read: true }
-        : m
-    );
-    const changed = updated.some((m, i) => m.read !== dms[i].read);
+    if (!selectedId) return;
+    let changed = false;
+    const updated = dms.map((m) => {
+      if (m.fromUserId === selectedId && m.toUserId === myId && !m.read) {
+        changed = true;
+        return { ...m, read: true };
+      }
+      return m;
+    });
     if (changed) {
-      setDms(updated);
-      // Persist each updated message
-      updated.forEach((m) => {
-        if (m.fromUser === selected && m.toUser === CURRENT_USER) {
+      updated.forEach((m, i) => {
+        if (m.read !== dms[i].read) {
           saveDM(m);
         }
       });
+      setDms(updated);
     }
-  }, [selected]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [selectedId]);
 
-  // Scroll to bottom on new messages
+  // Scroll to bottom of thread
   useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [dms, selected]);
-
-  const { showToast } = useToast();
+    threadEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [dms, selectedId]);
 
   function handleSend() {
-    if (!input.trim()) return;
-    const newMsg: DM = {
-      id: uid(),
-      fromUser: CURRENT_USER,
-      toUser: selected,
+    if (!input.trim() || !selectedId) return;
+    const person = staff.find((s) => s.id === selectedId);
+    const newMsg: ExtDM = {
+      id: Math.random().toString(36).slice(2, 10) + Date.now().toString(36),
+      fromUser: currentUser?.name || "",
+      toUser: person?.name || "",
+      fromUserId: myId,
+      toUserId: selectedId,
       body: input.trim(),
       timestamp: new Date().toISOString(),
-      read: true,
+      read: false,
     };
     saveDM(newMsg);
     setDms([...dms, newMsg]);
     setInput("");
-    showToast("Message sent");
   }
 
-  const thread = getThread(selected);
-  const selectedStaff = staff.find((s) => s.name === selected)!;
+  function handleKeyDown(e: React.KeyboardEvent<HTMLTextAreaElement>) {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
+    }
+  }
+
+  const selectedPerson = staff.find((s) => s.id === selectedId);
+  const thread = selectedId ? getThread(selectedId) : [];
 
   return (
-    <div style={{ display: "flex", height: "calc(100vh - 48px)", gap: 0 }}>
-      {/* Left: Staff list */}
+    <div style={{ display: "flex", height: "calc(100vh - 73px)", margin: "-24px", overflow: "hidden" }}>
+      {/* Left Column — Staff List */}
       <div
         style={{
           width: 280,
+          minWidth: 280,
+          borderRight: "1px solid var(--color-border)",
+          display: "flex",
+          flexDirection: "column",
           background: "var(--color-surface)",
-          border: "1px solid var(--color-border)",
-          borderRadius: "10px 0 0 10px",
-          overflowY: "auto",
-          flexShrink: 0,
+          overflow: "auto",
         }}
       >
-        <div style={{ padding: "16px 16px 8px", fontFamily: "var(--font-heading)", fontSize: 18, color: "var(--color-text)" }}>
-          Messages
+        <div style={{ padding: "16px 16px 12px", borderBottom: "1px solid var(--color-border)" }}>
+          <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 18, color: "var(--color-text)", margin: 0 }}>
+            Messages
+          </h2>
         </div>
-        {staff.map((person) => {
-          const active = selected === person.name;
-          const unread = unreadCount(person.name);
+        {sortedStaff.map((person) => {
+          const last = lastMessage(person.id);
+          const unread = unreadFrom(person.id);
+          const isActive = selectedId === person.id;
           return (
             <div
-              key={person.name}
-              onClick={() => setSelected(person.name)}
+              key={person.id}
+              onClick={() => setSelectedId(person.id)}
               style={{
                 display: "flex",
                 alignItems: "center",
-                gap: 12,
+                gap: 10,
                 padding: "12px 16px",
                 cursor: "pointer",
-                background: active ? "rgba(232,93,36,0.08)" : "transparent",
-                borderLeft: active ? "3px solid var(--color-accent)" : "3px solid transparent",
+                background: isActive ? "rgba(232,93,36,0.08)" : "transparent",
+                borderBottom: "1px solid var(--color-border)",
                 transition: "background 0.12s",
               }}
             >
@@ -140,11 +166,11 @@ export default function Messages() {
                   width: 36,
                   height: 36,
                   borderRadius: "50%",
-                  background: person.color,
+                  background: isActive ? "var(--color-accent)" : "#3A3A3A",
                   display: "flex",
                   alignItems: "center",
                   justifyContent: "center",
-                  fontSize: 13,
+                  fontSize: 12,
                   fontWeight: 700,
                   color: "#fff",
                   flexShrink: 0,
@@ -152,182 +178,213 @@ export default function Messages() {
               >
                 {person.initials}
               </div>
-              {/* Name + role */}
+              {/* Info */}
               <div style={{ flex: 1, minWidth: 0 }}>
-                <div style={{ fontSize: 14, color: "var(--color-text)", fontWeight: 500 }}>{person.name}</div>
-                <span
-                  style={{
-                    fontSize: 10,
-                    padding: "2px 6px",
-                    borderRadius: 10,
-                    background: roleColors[person.role].bg,
-                    color: roleColors[person.role].text,
-                    fontWeight: 600,
-                  }}
-                >
-                  {person.role}
-                </span>
-              </div>
-              {/* Unread badge */}
-              {unread > 0 && (
-                <div
-                  style={{
-                    width: 20,
-                    height: 20,
-                    borderRadius: "50%",
-                    background: "var(--color-accent)",
-                    color: "#fff",
-                    fontSize: 11,
-                    fontWeight: 700,
-                    display: "flex",
-                    alignItems: "center",
-                    justifyContent: "center",
-                  }}
-                >
-                  {unread}
+                <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                  <span style={{ fontSize: 13, fontWeight: 600, color: "var(--color-text)" }}>{person.name}</span>
+                  <span
+                    style={{
+                      fontSize: 9,
+                      padding: "1px 5px",
+                      borderRadius: 8,
+                      fontWeight: 600,
+                      background: roleBadge[person.role]?.bg,
+                      color: roleBadge[person.role]?.text,
+                    }}
+                  >
+                    {person.role}
+                  </span>
                 </div>
-              )}
+                {last && (
+                  <div style={{ fontSize: 11, color: "var(--color-text-muted)", marginTop: 2, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
+                    {last.body.slice(0, 40)}{last.body.length > 40 ? "\u2026" : ""}
+                  </div>
+                )}
+              </div>
+              {/* Right side: timestamp + badge */}
+              <div style={{ display: "flex", flexDirection: "column", alignItems: "flex-end", gap: 4, flexShrink: 0 }}>
+                {last && (
+                  <span style={{ fontSize: 10, color: "var(--color-text-muted)" }}>
+                    {new Date(last.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                  </span>
+                )}
+                {unread > 0 && (
+                  <div
+                    style={{
+                      width: 18,
+                      height: 18,
+                      borderRadius: "50%",
+                      background: "var(--color-accent)",
+                      color: "#fff",
+                      fontSize: 10,
+                      fontWeight: 700,
+                      display: "flex",
+                      alignItems: "center",
+                      justifyContent: "center",
+                    }}
+                  >
+                    {unread}
+                  </div>
+                )}
+              </div>
             </div>
           );
         })}
       </div>
 
-      {/* Right: Chat thread */}
-      <div
-        style={{
-          flex: 1,
-          display: "flex",
-          flexDirection: "column",
-          background: "var(--color-bg)",
-          border: "1px solid var(--color-border)",
-          borderLeft: "none",
-          borderRadius: "0 10px 10px 0",
-        }}
-      >
-        {/* Chat header */}
-        <div
-          style={{
-            padding: "14px 20px",
-            borderBottom: "1px solid var(--color-border)",
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-          }}
-        >
-          <div
-            style={{
-              width: 32,
-              height: 32,
-              borderRadius: "50%",
-              background: selectedStaff.color,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              fontSize: 12,
-              fontWeight: 700,
-              color: "#fff",
-            }}
-          >
-            {selectedStaff.initials}
+      {/* Right Column — Conversation Thread */}
+      <div style={{ flex: 1, display: "flex", flexDirection: "column", background: "var(--color-bg)" }}>
+        {!selectedPerson ? (
+          <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-muted)", fontSize: 14 }}>
+            Select a conversation from the left
           </div>
-          <div>
-            <div style={{ fontSize: 15, fontWeight: 600, color: "var(--color-text)" }}>{selectedStaff.name}</div>
-            <div style={{ fontSize: 11, color: "var(--color-text-muted)" }}>{selectedStaff.role}</div>
-          </div>
-        </div>
-
-        {/* Messages area */}
-        <div style={{ flex: 1, overflowY: "auto", padding: "16px 20px", display: "flex", flexDirection: "column", gap: 10 }}>
-          {thread.length === 0 && (
-            <div style={{ textAlign: "center", color: "var(--color-text-muted)", fontSize: 13, marginTop: 40 }}>
-              No messages yet. Start the conversation!
-            </div>
-          )}
-          {thread.map((msg) => {
-            const isMe = msg.fromUser === CURRENT_USER;
-            return (
+        ) : (
+          <>
+            {/* Thread Header */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: 10,
+                padding: "14px 20px",
+                borderBottom: "1px solid var(--color-border)",
+                background: "var(--color-surface)",
+              }}
+            >
               <div
-                key={msg.id}
                 style={{
+                  width: 34,
+                  height: 34,
+                  borderRadius: "50%",
+                  background: "var(--color-accent)",
                   display: "flex",
-                  justifyContent: isMe ? "flex-end" : "flex-start",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  fontSize: 12,
+                  fontWeight: 700,
+                  color: "#fff",
                 }}
               >
-                <div
+                {selectedPerson.initials}
+              </div>
+              <div>
+                <div style={{ fontSize: 14, fontWeight: 600, color: "var(--color-text)" }}>{selectedPerson.name}</div>
+                <span
                   style={{
-                    maxWidth: "70%",
-                    padding: "10px 14px",
-                    borderRadius: isMe ? "14px 14px 4px 14px" : "14px 14px 14px 4px",
-                    background: isMe ? "var(--color-accent)" : "var(--color-surface)",
-                    color: isMe ? "#fff" : "var(--color-text)",
-                    fontSize: 14,
-                    lineHeight: 1.4,
+                    fontSize: 10,
+                    padding: "1px 6px",
+                    borderRadius: 8,
+                    fontWeight: 600,
+                    background: roleBadge[selectedPerson.role]?.bg,
+                    color: roleBadge[selectedPerson.role]?.text,
                   }}
                 >
-                  <div>{msg.body}</div>
-                  <div
-                    style={{
-                      fontSize: 10,
-                      marginTop: 4,
-                      opacity: 0.6,
-                      textAlign: isMe ? "right" : "left",
-                    }}
-                  >
-                    {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                  </div>
-                </div>
+                  {selectedPerson.role}
+                </span>
               </div>
-            );
-          })}
-          <div ref={chatEndRef} />
-        </div>
+            </div>
 
-        {/* Input bar */}
-        <div
-          style={{
-            padding: "12px 20px",
-            borderTop: "1px solid var(--color-border)",
-            display: "flex",
-            gap: 8,
-          }}
-        >
-          <input
-            value={input}
-            onChange={(e) => setInput(e.target.value)}
-            onKeyDown={(e) => e.key === "Enter" && handleSend()}
-            placeholder={`Message ${selectedStaff.name}...`}
-            style={{
-              flex: 1,
-              padding: "10px 14px",
-              background: "var(--color-surface)",
-              border: "1px solid var(--color-border)",
-              borderRadius: 8,
-              color: "var(--color-text)",
-              fontSize: 14,
-              fontFamily: "var(--font-body)",
-              outline: "none",
-            }}
-          />
-          <button
-            onClick={handleSend}
-            style={{
-              width: 40,
-              height: 40,
-              display: "flex",
-              alignItems: "center",
-              justifyContent: "center",
-              background: "var(--color-accent)",
-              border: "none",
-              borderRadius: 8,
-              cursor: "pointer",
-              transition: "opacity 0.15s",
-            }}
-            onMouseEnter={(e) => (e.currentTarget.style.opacity = "0.85")}
-            onMouseLeave={(e) => (e.currentTarget.style.opacity = "1")}
-          >
-            <Send size={18} color="#fff" />
-          </button>
-        </div>
+            {/* Messages */}
+            <div style={{ flex: 1, overflow: "auto", padding: "16px 20px", display: "flex", flexDirection: "column", gap: 10 }}>
+              {thread.length === 0 && (
+                <div style={{ flex: 1, display: "flex", alignItems: "center", justifyContent: "center", color: "var(--color-text-muted)", fontSize: 13 }}>
+                  Start a conversation with {selectedPerson.name}
+                </div>
+              )}
+              {thread.map((msg) => {
+                const isMine = msg.fromUserId === myId;
+                return (
+                  <div key={msg.id} style={{ display: "flex", justifyContent: isMine ? "flex-end" : "flex-start" }}>
+                    <div>
+                      <div
+                        style={{
+                          maxWidth: 340,
+                          padding: "10px 14px",
+                          borderRadius: 12,
+                          fontSize: 13,
+                          lineHeight: 1.5,
+                          background: isMine ? "var(--color-accent)" : "var(--color-surface)",
+                          color: isMine ? "#fff" : "var(--color-text)",
+                          border: isMine ? "none" : "1px solid var(--color-border)",
+                          whiteSpace: "pre-wrap",
+                          wordBreak: "break-word",
+                        }}
+                      >
+                        {msg.body}
+                      </div>
+                      <div
+                        style={{
+                          fontSize: 10,
+                          color: "var(--color-text-muted)",
+                          marginTop: 3,
+                          textAlign: isMine ? "right" : "left",
+                          paddingLeft: isMine ? 0 : 4,
+                          paddingRight: isMine ? 4 : 0,
+                        }}
+                      >
+                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+              <div ref={threadEndRef} />
+            </div>
+
+            {/* Input Bar */}
+            <div
+              style={{
+                display: "flex",
+                alignItems: "flex-end",
+                gap: 10,
+                padding: "12px 20px",
+                borderTop: "1px solid var(--color-border)",
+                background: "var(--color-surface)",
+              }}
+            >
+              <textarea
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={`Message ${selectedPerson.name}...`}
+                rows={1}
+                style={{
+                  flex: 1,
+                  padding: "10px 12px",
+                  background: "var(--color-bg)",
+                  border: "1px solid var(--color-border)",
+                  borderRadius: 8,
+                  color: "var(--color-text)",
+                  fontSize: 13,
+                  fontFamily: "var(--font-body)",
+                  resize: "none",
+                  outline: "none",
+                  maxHeight: 72,
+                  lineHeight: 1.4,
+                  overflow: "auto",
+                }}
+              />
+              <button
+                onClick={handleSend}
+                disabled={!input.trim()}
+                style={{
+                  width: 38,
+                  height: 38,
+                  borderRadius: 8,
+                  border: "none",
+                  background: input.trim() ? "var(--color-accent)" : "var(--color-border)",
+                  display: "flex",
+                  alignItems: "center",
+                  justifyContent: "center",
+                  cursor: input.trim() ? "pointer" : "default",
+                  transition: "background 0.12s",
+                }}
+              >
+                <Send size={16} color="#fff" />
+              </button>
+            </div>
+          </>
+        )}
       </div>
     </div>
   );
