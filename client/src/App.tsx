@@ -4,12 +4,10 @@ import { LayoutDashboard, ClipboardList, MessageSquare, Columns3 } from "lucide-
 import Dashboard from "@/views/Dashboard";
 import JobDetail from "@/views/JobDetail";
 import Messages from "@/views/Messages";
+import Board from "@/views/Board";
 
 // Dashboard imported from @/views/Dashboard
 function WorkOrders() {
-  return <div />;
-}
-function Board() {
   return <div />;
 }
 
