@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { saveJob, getJobs, type Job, type PartsLine } from "@/data/store";
 import { ChevronDown, X, Plus, Trash2 } from "lucide-react";
 
@@ -11,6 +11,7 @@ const serviceOptions = ["Head Unit", "Speakers", "Amplifier", "Subwoofer", "Remo
 interface Props {
   open: boolean;
   onClose: () => void;
+  editJob?: Job;
 }
 
 function uid() {
@@ -74,7 +75,7 @@ const labelStyle: React.CSSProperties = {
   fontWeight: 500,
 };
 
-export default function JobDrawer({ open, onClose }: Props) {
+export default function JobDrawer({ open, onClose, editJob }: Props) {
   const [customerName, setCustomerName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -96,6 +97,33 @@ export default function JobDrawer({ open, onClose }: Props) {
   const [notes, setNotes] = useState("");
   const [damage, setDamage] = useState("");
 
+  // Pre-fill when editing
+  useEffect(() => {
+    if (editJob && open) {
+      setCustomerName(editJob.customerName);
+      setPhone(editJob.phone);
+      setEmail("");
+      setYear(editJob.vehicle.year);
+      setMake(editJob.vehicle.make);
+      setModel(editJob.vehicle.model);
+      setColor("");
+      setFactoryAmp(false);
+      setServices([...editJob.serviceTypes]);
+      setPartsLines(editJob.partsLines.map((p) => ({ partNum: "", description: p.description, qty: p.qty, price: p.unitPrice })));
+      setTech(editJob.techAssigned);
+      setSalesperson(editJob.salesperson);
+      setPromiseDate("");
+      setNotes(editJob.notes);
+      setDamage(editJob.damage);
+    } else if (!editJob && open) {
+      setCustomerName(""); setPhone(""); setEmail("");
+      setYear(""); setMake(""); setModel(""); setColor(""); setFactoryAmp(false);
+      setServices([]); setPartsLines([]);
+      setTech(""); setSalesperson(""); setPromiseDate("");
+      setNotes(""); setDamage("");
+    }
+  }, [editJob, open]);
+
   function toggleService(s: string) {
     setServices((prev) => (prev.includes(s) ? prev.filter((x) => x !== s) : [...prev, s]));
   }
@@ -115,6 +143,25 @@ export default function JobDrawer({ open, onClose }: Props) {
   const partsTotal = partsLines.reduce((sum, p) => sum + p.qty * p.price, 0);
 
   function handleSave() {
+    if (editJob) {
+      const updated: Job = {
+        ...editJob,
+        customerName: customerName || editJob.customerName,
+        phone,
+        vehicle: { year, make, model },
+        serviceTypes: services,
+        techAssigned: tech,
+        salesperson,
+        partsLines: partsLines.map((p) => ({ description: p.description || p.partNum, qty: p.qty, unitPrice: p.price })),
+        totalEstimate: partsTotal || editJob.totalEstimate,
+        notes,
+        damage,
+      };
+      saveJob(updated);
+      onClose();
+      return;
+    }
+
     const jobs = getJobs();
     const maxNum = jobs.reduce((m, j) => Math.max(m, j.jobNumber), 1000);
 
@@ -134,6 +181,7 @@ export default function JobDrawer({ open, onClose }: Props) {
       createdAt: new Date().toISOString(),
       notes,
       damage,
+      internalNotes: [],
     };
 
     saveJob(newJob);
@@ -192,7 +240,7 @@ export default function JobDrawer({ open, onClose }: Props) {
           }}
         >
           <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 22, color: "var(--color-text)", margin: 0 }}>
-            New Job
+            {editJob ? `Edit Job #${editJob.jobNumber}` : "New Job"}
           </h2>
           <button
             onClick={onClose}

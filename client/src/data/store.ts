@@ -22,6 +22,7 @@ export interface Job {
   createdAt: string;
   notes: string;
   damage: string;
+  internalNotes: { text: string; timestamp: string }[];
 }
 
 export interface DM {
@@ -147,6 +148,7 @@ function seedJobs(): Job[] {
       createdAt: new Date().toISOString(),
       notes: "Customer wants 20% all around, no windshield strip.",
       damage: "",
+      internalNotes: [],
     },
     {
       id: uid(),
@@ -167,6 +169,7 @@ function seedJobs(): Job[] {
       createdAt: new Date(Date.now() - 86400000).toISOString(),
       notes: "Rush job — customer picking up Friday.",
       damage: "Small rock chip on hood, noted before PPF.",
+      internalNotes: [],
     },
     {
       id: uid(),
@@ -186,6 +189,7 @@ function seedJobs(): Job[] {
       createdAt: new Date(Date.now() - 172800000).toISOString(),
       notes: "Full body satin black wrap. Mirrors and handles included.",
       damage: "",
+      internalNotes: [],
     },
   ];
 }
