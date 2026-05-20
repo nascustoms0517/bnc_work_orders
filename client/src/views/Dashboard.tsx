@@ -3,6 +3,7 @@ import { getJobs, type Job } from "@/data/store";
 import { useLocation } from "wouter";
 import JobDrawer from "@/components/JobDrawer";
 import { Plus } from "lucide-react";
+import { useSearch } from "@/App";
 
 const statusColors: Record<Job["status"], { bg: string; text: string }> = {
   intake: { bg: "#3A3A3A", text: "#AAAAAA" },
@@ -21,8 +22,22 @@ const statusLabel: Record<Job["status"], string> = {
 export default function Dashboard() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const jobs = getJobs();
+  const allJobs = getJobs();
   const [, navigate] = useLocation();
+  const { query } = useSearch();
+
+  // Filter jobs by search query
+  const jobs = query.trim()
+    ? allJobs.filter((j) => {
+        const q = query.toLowerCase();
+        return (
+          j.customerName.toLowerCase().includes(q) ||
+          j.jobNumber.toString().includes(q) ||
+          `${j.vehicle.year} ${j.vehicle.make} ${j.vehicle.model}`.toLowerCase().includes(q) ||
+          j.techAssigned.toLowerCase().includes(q)
+        );
+      })
+    : allJobs;
 
   function handleDrawerClose() {
     setDrawerOpen(false);
