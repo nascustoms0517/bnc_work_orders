@@ -3,6 +3,7 @@ import { getJobs, saveJob, type Job } from "@/data/store";
 import { useLocation, useParams } from "wouter";
 import { ArrowLeft, Printer, Pencil } from "lucide-react";
 import JobDrawer from "@/components/JobDrawer";
+import { useToast } from "@/components/Toast";
 
 const statusOptions: { value: Job["status"]; label: string }[] = [
   { value: "intake", label: "Intake" },
@@ -45,6 +46,7 @@ export default function JobDetail() {
   const [refreshKey, setRefreshKey] = useState(0);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [noteText, setNoteText] = useState("");
+  const { showToast } = useToast();
 
   const jobs = getJobs();
   const job = jobs.find((j) => j.id === params.id);
@@ -64,6 +66,7 @@ export default function JobDetail() {
     job!.status = newStatus;
     saveJob(job!);
     setRefreshKey((k) => k + 1);
+    showToast(`Status changed to ${newStatus}`);
   }
 
   function addNote() {
@@ -73,6 +76,7 @@ export default function JobDetail() {
     saveJob(job!);
     setNoteText("");
     setRefreshKey((k) => k + 1);
+    showToast("Note added");
   }
 
   function handlePrint() {
@@ -81,42 +85,50 @@ export default function JobDetail() {
     const html = `
       <html><head><title>Work Order #${job!.jobNumber}</title>
       <style>
-        body { font-family: Arial, sans-serif; padding: 40px; color: #111; }
-        h1 { font-size: 22px; margin-bottom: 4px; }
-        .sub { color: #666; font-size: 13px; margin-bottom: 24px; }
-        .section { margin-bottom: 20px; }
-        .section h2 { font-size: 14px; text-transform: uppercase; color: #888; border-bottom: 1px solid #ddd; padding-bottom: 4px; margin-bottom: 8px; }
-        .row { display: flex; gap: 32px; margin-bottom: 6px; }
-        .label { font-size: 12px; color: #888; }
-        .val { font-size: 14px; }
-        table { width: 100%; border-collapse: collapse; font-size: 13px; }
-        th, td { border: 1px solid #ddd; padding: 6px 10px; text-align: left; }
-        th { background: #f5f5f5; }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Arial', sans-serif; padding: 32px 40px; color: #111; font-size: 13px; }
+        .header { display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 3px solid #E85D24; padding-bottom: 16px; margin-bottom: 24px; }
+        .logo { font-size: 28px; font-weight: 900; letter-spacing: -1px; color: #E85D24; }
+        .logo-sub { font-size: 11px; color: #666; margin-top: 2px; }
+        .wo-num { font-size: 20px; font-weight: 700; text-align: right; }
+        .wo-meta { font-size: 11px; color: #666; text-align: right; margin-top: 4px; }
+        .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px 32px; margin-bottom: 20px; }
+        .field { margin-bottom: 8px; }
+        .field-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.5px; color: #888; margin-bottom: 2px; }
+        .field-value { font-size: 14px; color: #111; }
+        .section-title { font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; color: #E85D24; font-weight: 700; margin: 20px 0 8px; padding-bottom: 4px; border-bottom: 1px solid #eee; }
+        table { width: 100%; border-collapse: collapse; font-size: 12px; margin-top: 6px; }
+        th { background: #f8f8f8; padding: 6px 10px; text-align: left; font-weight: 600; border: 1px solid #ddd; }
+        td { padding: 6px 10px; border: 1px solid #ddd; }
+        .total-row { font-weight: 700; font-size: 16px; text-align: right; margin-top: 12px; }
+        .signature { margin-top: 60px; display: grid; grid-template-columns: 1fr 1fr; gap: 60px; }
+        .sig-line { border-top: 1px solid #333; padding-top: 6px; font-size: 11px; color: #666; }
+        @media print { body { padding: 20px; } }
       </style></head><body>
-      <h1>Work Order #${job!.jobNumber}</h1>
-      <div class="sub">Created: ${new Date(job!.createdAt).toLocaleDateString()} | Status: ${job!.status}</div>
-      <div class="section"><h2>Customer</h2>
-        <div class="row"><div><span class="label">Name</span><div class="val">${job!.customerName}</div></div>
-        <div><span class="label">Phone</span><div class="val">${job!.phone}</div></div></div>
+      <div class="header">
+        <div><div class="logo">BNC</div><div class="logo-sub">Work Order</div></div>
+        <div><div class="wo-num">#${job!.jobNumber}</div><div class="wo-meta">Date: ${new Date(job!.createdAt).toLocaleDateString()}<br>Status: ${job!.status.toUpperCase()}</div></div>
       </div>
-      <div class="section"><h2>Vehicle</h2>
-        <div class="val">${job!.vehicle.year} ${job!.vehicle.make} ${job!.vehicle.model}</div>
+      <div class="grid">
+        <div class="field"><div class="field-label">Customer Name</div><div class="field-value">${job!.customerName}</div></div>
+        <div class="field"><div class="field-label">Phone</div><div class="field-value">${job!.phone || '—'}</div></div>
+        <div class="field"><div class="field-label">Vehicle</div><div class="field-value">${job!.vehicle.year} ${job!.vehicle.make} ${job!.vehicle.model}</div></div>
+        <div class="field"><div class="field-label">Services</div><div class="field-value">${job!.serviceTypes.join(", ") || "None"}</div></div>
+        <div class="field"><div class="field-label">Technician</div><div class="field-value">${job!.techAssigned || '—'}</div></div>
+        <div class="field"><div class="field-label">Salesperson</div><div class="field-value">${job!.salesperson || '—'}</div></div>
       </div>
-      <div class="section"><h2>Services</h2>
-        <div class="val">${job!.serviceTypes.join(", ") || "None"}</div>
+      ${job!.partsLines.length > 0 ? `
+      <div class="section-title">Parts & Labor</div>
+      <table><thead><tr><th>Description</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead><tbody>
+      ${job!.partsLines.map((p) => `<tr><td>${p.description}</td><td>${p.qty}</td><td>$${p.unitPrice.toFixed(2)}</td><td>$${(p.qty * p.unitPrice).toFixed(2)}</td></tr>`).join("")}
+      </tbody></table>
+      <div class="total-row">Estimate Total: $${job!.totalEstimate.toLocaleString()}</div>` : ''}
+      ${job!.notes ? `<div class="section-title">Notes</div><p style="font-size:13px;line-height:1.5;">${job!.notes}</p>` : ''}
+      ${job!.damage ? `<div class="section-title">Damage</div><p style="font-size:13px;line-height:1.5;">${job!.damage}</p>` : ''}
+      <div class="signature">
+        <div><div class="sig-line">Customer Signature</div></div>
+        <div><div class="sig-line">Date</div></div>
       </div>
-      <div class="section"><h2>Parts</h2>
-        <table><thead><tr><th>Description</th><th>Qty</th><th>Unit Price</th><th>Total</th></tr></thead><tbody>
-        ${job!.partsLines.map((p) => `<tr><td>${p.description}</td><td>${p.qty}</td><td>$${p.unitPrice}</td><td>$${p.qty * p.unitPrice}</td></tr>`).join("")}
-        </tbody></table>
-      </div>
-      <div class="section"><h2>Assignment</h2>
-        <div class="row"><div><span class="label">Tech</span><div class="val">${job!.techAssigned || "—"}</div></div>
-        <div><span class="label">Salesperson</span><div class="val">${job!.salesperson || "—"}</div></div></div>
-      </div>
-      <div class="section"><h2>Estimate</h2><div class="val" style="font-size:18px;font-weight:bold;">$${job!.totalEstimate.toLocaleString()}</div></div>
-      ${job!.notes ? `<div class="section"><h2>Notes</h2><div class="val">${job!.notes}</div></div>` : ""}
-      ${job!.damage ? `<div class="section"><h2>Damage</h2><div class="val">${job!.damage}</div></div>` : ""}
       <script>window.print();</script>
       </body></html>
     `;

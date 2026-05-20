@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { getBoardMessages, saveBoardMessage, type BoardMessage } from "@/data/store";
 import { Pin, Send } from "lucide-react";
+import { useToast } from "@/components/Toast";
 
 // Settings toggle — set to true to allow pin actions (manager mode)
 const IS_MANAGER = true;
@@ -52,6 +53,8 @@ export default function Board() {
   const [poster, setPoster] = useState(allStaff[0].name);
   const [pinnedId, setPinnedId] = useState<string | null>(getPinned());
 
+  const { showToast } = useToast();
+
   function handlePost() {
     if (!input.trim()) return;
     const msg: BoardMessage = {
@@ -63,6 +66,7 @@ export default function Board() {
     saveBoardMessage(msg);
     setMessages([msg, ...messages]);
     setInput("");
+    showToast("Posted to board");
   }
 
   function handlePin(id: string) {

@@ -1,6 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { getDMs, saveDM, type DM } from "@/data/store";
 import { Send } from "lucide-react";
+import { useToast } from "@/components/Toast";
 
 const CURRENT_USER = "You";
 
@@ -78,6 +79,8 @@ export default function Messages() {
     chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [dms, selected]);
 
+  const { showToast } = useToast();
+
   function handleSend() {
     if (!input.trim()) return;
     const newMsg: DM = {
@@ -91,6 +94,7 @@ export default function Messages() {
     saveDM(newMsg);
     setDms([...dms, newMsg]);
     setInput("");
+    showToast("Message sent");
   }
 
   const thread = getThread(selected);

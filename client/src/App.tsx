@@ -3,6 +3,7 @@ import { useState, useRef, useEffect, createContext, useContext } from "react";
 import { Route, Switch, useLocation, Link } from "wouter";
 import { LayoutDashboard, ClipboardList, MessageSquare, Columns3, Search, Bell } from "lucide-react";
 import { getDMs, getBoardMessages, getJobs } from "@/data/store";
+import { ToastProvider } from "@/components/Toast";
 import Dashboard from "@/views/Dashboard";
 import JobDetail from "@/views/JobDetail";
 import Messages from "@/views/Messages";
@@ -231,6 +232,7 @@ function App() {
   const [searchQuery, setSearchQuery] = useState("");
 
   return (
+    <ToastProvider>
     <SearchContext.Provider value={{ query: searchQuery }}>
       <div style={{ display: "flex", minHeight: "100vh" }}>
         <Sidebar />
@@ -298,6 +300,7 @@ function App() {
         </div>
       </div>
     </SearchContext.Provider>
+    </ToastProvider>
   );
 }
 
