@@ -3,12 +3,10 @@ import { Route, Switch, useLocation, Link } from "wouter";
 import { LayoutDashboard, ClipboardList, MessageSquare, Columns3 } from "lucide-react";
 import Dashboard from "@/views/Dashboard";
 import JobDetail from "@/views/JobDetail";
+import Messages from "@/views/Messages";
 
 // Dashboard imported from @/views/Dashboard
 function WorkOrders() {
-  return <div />;
-}
-function Messages() {
   return <div />;
 }
 function Board() {
