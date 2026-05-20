@@ -1,10 +1,9 @@
 import "./styles/globals.css";
 import { Route, Switch, useLocation, Link } from "wouter";
 import { LayoutDashboard, ClipboardList, MessageSquare, Columns3 } from "lucide-react";
+import Dashboard from "@/views/Dashboard";
 
-function Dashboard() {
-  return <div />;
-}
+// Dashboard imported from @/views/Dashboard
 function WorkOrders() {
   return <div />;
 }
@@ -83,6 +82,7 @@ function App() {
         <Switch>
           <Route path="/" component={Dashboard} />
           <Route path="/work-orders" component={WorkOrders} />
+          <Route path="/work-orders/:id">{() => <div style={{color:'var(--color-text)'}}>Job detail coming soon.</div>}</Route>
           <Route path="/messages" component={Messages} />
           <Route path="/board" component={Board} />
         </Switch>
