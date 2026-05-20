@@ -20,36 +20,63 @@ const DEFAULT_ADMIN: User = {
   password: "bnc123",
 };
 
+function seedUsers(): User[] {
+  return [{ ...DEFAULT_ADMIN }];
+}
+
+function parseUsers(raw: string | null): User[] | null {
+  if (raw === null) return null;
+
+  try {
+    const parsed = JSON.parse(raw);
+    return Array.isArray(parsed) ? parsed : null;
+  } catch {
+    return null;
+  }
+}
+
+function writeUsers(users: User[]): void {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+}
+
 export function initUsers(): void {
   const raw = localStorage.getItem(STORAGE_KEY);
-  if (!raw || raw === "[]") {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify([DEFAULT_ADMIN]));
+
+  // Only seed when the key is completely absent. If it already exists — even
+  // as an empty array — do not overwrite staff data stored by the app.
+  if (raw === null) {
+    writeUsers(seedUsers());
   }
 }
 
 export function getUsers(): User[] {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
+  const users = parseUsers(localStorage.getItem(STORAGE_KEY));
+
+  // Always read localStorage first. Only fall back to seed data when the key is
+  // missing, unreadable, or currently stores an empty array.
+  if (!users || users.length === 0) {
+    return seedUsers();
   }
+
+  return users;
 }
 
 export function saveUser(user: User): void {
   const users = getUsers();
   const idx = users.findIndex((u) => u.id === user.id);
+
   if (idx >= 0) {
     users[idx] = user;
   } else {
     users.push(user);
   }
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+
+  writeUsers(users);
 }
 
 export function deleteUser(id: string): void {
   const users = getUsers().filter((u) => u.id !== id);
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(users));
+  writeUsers(users);
 }
 
 // Convenience helpers used by dropdowns

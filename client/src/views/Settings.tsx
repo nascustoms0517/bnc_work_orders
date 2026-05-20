@@ -1,12 +1,27 @@
 import { useState } from "react";
 import { getUsers, saveUser, deleteUser, type User } from "@/data/users";
+import { getJobs, getDMs, getBoardMessages } from "@/data/store";
 import { useAuth } from "@/contexts/AuthContext";
-import { Plus, Pencil, Trash2, X } from "lucide-react";
+import { Plus, Pencil, Trash2, X, Download } from "lucide-react";
 
 function generateInitials(name: string): string {
   const parts = name.trim().split(/\s+/);
   if (parts.length >= 2) return (parts[0][0] + parts[1][0]).toUpperCase();
   return name.slice(0, 2).toUpperCase();
+}
+
+function formatFileTimestamp(date: Date): string {
+  const pad = (value: number) => String(value).padStart(2, "0");
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}_${pad(date.getHours())}-${pad(date.getMinutes())}-${pad(date.getSeconds())}`;
+}
+
+function readStoredJson<T>(key: string): T | null {
+  try {
+    const raw = localStorage.getItem(key);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
 }
 
 export default function Settings() {
@@ -93,6 +108,44 @@ export default function Settings() {
     setConfirmDelete(null);
   }
 
+  function handleEndOfDayExport() {
+    if (currentUser?.role !== "manager") return;
+
+    const exportedAt = new Date();
+    const exportPayload = {
+      exportType: "bnc_end_of_day_backup",
+      version: 1,
+      exportedAt: exportedAt.toISOString(),
+      exportedBy: currentUser,
+      storageKeys: {
+        users: "bnc_users",
+        jobs: "bnc_jobs",
+        directMessages: "bnc_dms",
+        boardMessages: "bnc_board",
+        boardPinnedId: "bnc_board_pinned",
+        currentUser: "bnc_current_user",
+      },
+      data: {
+        users: getUsers(),
+        jobs: getJobs(),
+        directMessages: getDMs(),
+        boardMessages: getBoardMessages(),
+        boardPinnedId: localStorage.getItem("bnc_board_pinned"),
+        currentUser: readStoredJson<User>("bnc_current_user"),
+      },
+    };
+
+    const blob = new Blob([JSON.stringify(exportPayload, null, 2)], { type: "application/json" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `bnc-end-of-day-${formatFileTimestamp(exportedAt)}.json`;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  }
+
   const roleBadge: Record<string, { bg: string; text: string }> = {
     manager: { bg: "rgba(232,93,36,0.15)", text: "#E85D24" },
     salesperson: { bg: "rgba(59,130,246,0.15)", text: "#3B82F6" },
@@ -120,12 +173,47 @@ export default function Settings() {
     fontWeight: 500,
   };
 
+  if (currentUser?.role !== "manager") {
+    return (
+      <div>
+        <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 28, color: "var(--color-text)", margin: 0 }}>
+          Settings
+        </h1>
+        <p style={{ color: "var(--color-text-muted)", fontSize: 14 }}>Only managers can access settings.</p>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
         <h1 style={{ fontFamily: "var(--font-heading)", fontSize: 28, color: "var(--color-text)", margin: 0 }}>
           Settings
         </h1>
+      </div>
+
+      {/* End of Day Export */}
+      <div style={{ background: "var(--color-surface)", border: "1px solid var(--color-border)", borderRadius: 10, padding: "16px 20px", marginBottom: 20 }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: 16 }}>
+          <div>
+            <h2 style={{ fontFamily: "var(--font-heading)", fontSize: 18, color: "var(--color-text)", margin: "0 0 6px" }}>
+              End of Day Backup
+            </h2>
+            <p style={{ color: "var(--color-text-muted)", fontSize: 13, margin: 0 }}>
+              Download a local JSON file containing staff, jobs, direct messages, board posts, pinned board state, and the current login record.
+            </p>
+          </div>
+          <button
+            onClick={handleEndOfDayExport}
+            style={{
+              display: "flex", alignItems: "center", gap: 6, padding: "9px 14px",
+              background: "var(--color-accent)", color: "#fff", border: "none", borderRadius: 6,
+              fontSize: 13, fontWeight: 600, fontFamily: "var(--font-body)", cursor: "pointer", whiteSpace: "nowrap",
+            }}
+          >
+            <Download size={14} /> Save Local File
+          </button>
+        </div>
       </div>
 
       {/* Staff Management */}

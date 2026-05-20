@@ -13,17 +13,19 @@ const AuthContext = createContext<AuthContextType>({
   logout: () => {},
 });
 
-const STORAGE_KEY = "bnc_currentUser";
+const STORAGE_KEY = "bnc_current_user";
+
+function readCurrentUser(): User | null {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch {
+    return null;
+  }
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<User | null>(() => {
-    try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      return raw ? JSON.parse(raw) : null;
-    } catch {
-      return null;
-    }
-  });
+  const [currentUser, setCurrentUser] = useState<User | null>(() => readCurrentUser());
 
   function login(user: User) {
     localStorage.setItem(STORAGE_KEY, JSON.stringify(user));

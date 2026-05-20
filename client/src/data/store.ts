@@ -48,12 +48,18 @@ const BOARD_KEY = "bnc_board";
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function read<T>(key: string): T[] {
+function read<T>(key: string): { exists: boolean; data: T[] } {
+  const raw = localStorage.getItem(key);
+
+  if (raw === null) {
+    return { exists: false, data: [] };
+  }
+
   try {
-    const raw = localStorage.getItem(key);
-    return raw ? JSON.parse(raw) : [];
+    const parsed = JSON.parse(raw);
+    return { exists: true, data: Array.isArray(parsed) ? parsed : [] };
   } catch {
-    return [];
+    return { exists: true, data: [] };
   }
 }
 
@@ -69,22 +75,29 @@ function uid(): string {
 
 export function getJobs(): Job[] {
   const jobs = read<Job>(JOBS_KEY);
-  if (jobs.length === 0) {
+
+  // Seed sample jobs only on first run, when the localStorage key is completely
+  // absent. If the key exists, return exactly what is stored there, including an
+  // intentionally empty array.
+  if (!jobs.exists) {
     const seeded = seedJobs();
     write(JOBS_KEY, seeded);
     return seeded;
   }
-  return jobs;
+
+  return jobs.data;
 }
 
 export function saveJob(job: Job) {
   const jobs = getJobs();
   const idx = jobs.findIndex((j) => j.id === job.id);
+
   if (idx >= 0) {
     jobs[idx] = job;
   } else {
     jobs.push(job);
   }
+
   write(JOBS_KEY, jobs);
 }
 
@@ -96,34 +109,38 @@ export function deleteJob(id: string) {
 // ─── DMs ──────────────────────────────────────────────────────────────────────
 
 export function getDMs(): DM[] {
-  return read<DM>(DMS_KEY);
+  return read<DM>(DMS_KEY).data;
 }
 
 export function saveDM(dm: DM) {
   const dms = getDMs();
   const idx = dms.findIndex((d) => d.id === dm.id);
+
   if (idx >= 0) {
     dms[idx] = dm;
   } else {
     dms.push(dm);
   }
+
   write(DMS_KEY, dms);
 }
 
 // ─── Board Messages ───────────────────────────────────────────────────────────
 
 export function getBoardMessages(): BoardMessage[] {
-  return read<BoardMessage>(BOARD_KEY);
+  return read<BoardMessage>(BOARD_KEY).data;
 }
 
 export function saveBoardMessage(msg: BoardMessage) {
   const msgs = getBoardMessages();
   const idx = msgs.findIndex((m) => m.id === msg.id);
+
   if (idx >= 0) {
     msgs[idx] = msg;
   } else {
     msgs.push(msg);
   }
+
   write(BOARD_KEY, msgs);
 }
 
