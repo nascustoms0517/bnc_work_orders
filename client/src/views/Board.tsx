@@ -2,6 +2,7 @@ import { useState } from "react";
 import { getBoardMessages, saveBoardMessage, type BoardMessage } from "@/data/store";
 import { Pin, Send } from "lucide-react";
 import { useToast } from "@/components/Toast";
+import { useAuth } from "@/contexts/AuthContext";
 
 // Settings toggle — set to true to allow pin actions (manager mode)
 const IS_MANAGER = true;
@@ -50,16 +51,16 @@ function setPinned(id: string | null) {
 export default function Board() {
   const [messages, setMessages] = useState<BoardMessage[]>(getBoardMessages());
   const [input, setInput] = useState("");
-  const [poster, setPoster] = useState(allStaff[0].name);
   const [pinnedId, setPinnedId] = useState<string | null>(getPinned());
+  const { currentUser } = useAuth();
 
   const { showToast } = useToast();
 
   function handlePost() {
-    if (!input.trim()) return;
+    if (!input.trim() || !currentUser) return;
     const msg: BoardMessage = {
       id: uid(),
-      fromUser: poster,
+      fromUser: currentUser.name,
       body: input.trim(),
       timestamp: new Date().toISOString(),
     };
@@ -208,27 +209,6 @@ export default function Board() {
           alignItems: "center",
         }}
       >
-        {/* Name selector */}
-        <select
-          value={poster}
-          onChange={(e) => setPoster(e.target.value)}
-          style={{
-            padding: "10px 12px",
-            background: "var(--color-surface)",
-            border: "1px solid var(--color-border)",
-            borderRadius: 8,
-            color: "var(--color-text)",
-            fontSize: 13,
-            fontFamily: "var(--font-body)",
-            outline: "none",
-            width: 120,
-          }}
-        >
-          {allStaff.map((s) => (
-            <option key={s.name} value={s.name}>{s.name}</option>
-          ))}
-        </select>
-
         {/* Message input */}
         <input
           value={input}
