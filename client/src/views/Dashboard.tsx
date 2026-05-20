@@ -5,6 +5,8 @@ import JobDrawer from "@/components/JobDrawer";
 import { useToast } from "@/components/Toast";
 import { Plus, ArrowUp, ArrowDown } from "lucide-react";
 import { useSearch } from "@/App";
+import { useAuth } from "@/contexts/AuthContext";
+import { getTechs } from "@/data/users";
 
 const statusColors: Record<Job["status"], { bg: string; text: string }> = {
   intake: { bg: "#3A3A3A", text: "#AAAAAA" },
@@ -20,7 +22,8 @@ const statusLabel: Record<Job["status"], string> = {
   complete: "Complete",
 };
 
-const technicians = ["Habibi", "Maro", "Luis Jr", "Ivan", "Eric", "Dale", "Gary", "Angel", "Jimmy", "Big Junior", "Manuel"];
+const techUsers = getTechs();
+const techNames = techUsers.map((t) => t.name);
 
 type SortKey = "jobNumber" | "customerName" | "vehicle" | "status" | "techAssigned";
 type SortDir = "asc" | "desc";
@@ -28,10 +31,27 @@ type SortDir = "asc" | "desc";
 export default function Dashboard() {
   const [drawerOpen, setDrawerOpen] = useState(false);
   const [refreshKey, setRefreshKey] = useState(0);
-  const allJobs = getJobs();
+  const rawJobs = getJobs();
   const [, navigate] = useLocation();
   const { query } = useSearch();
   const { showToast } = useToast();
+  const { currentUser } = useAuth();
+  const role = currentUser?.role || "manager";
+  const userName = currentUser?.name || "";
+
+  // Role-based job filtering
+  const allJobs = useMemo(() => {
+    if (role === "tech") return rawJobs.filter((j) => j.techAssigned === userName);
+    if (role === "tinter") return rawJobs.filter((j) => j.serviceTypes.includes("Window Tint"));
+    if (role === "salesperson") {
+      return [...rawJobs].sort((a, b) => {
+        const aIsMine = a.salesperson === userName ? 0 : 1;
+        const bIsMine = b.salesperson === userName ? 0 : 1;
+        return aIsMine - bIsMine;
+      });
+    }
+    return rawJobs; // manager sees all
+  }, [rawJobs, role, userName]);
 
   // Filters
   const [filterStatus, setFilterStatus] = useState<string>("all");
@@ -102,18 +122,31 @@ export default function Dashboard() {
     }
   }
 
-  const totalJobs = allJobs.length;
-  const inProgress = allJobs.filter((j) => j.status === "in-progress").length;
-  const ready = allJobs.filter((j) => j.status === "ready").length;
   const today = new Date().toDateString();
-  const completedToday = allJobs.filter((j) => j.status === "complete" && new Date(j.createdAt).toDateString() === today).length;
 
-  const stats = [
-    { label: "Total Jobs", value: totalJobs },
-    { label: "In Progress", value: inProgress },
-    { label: "Ready for Pickup", value: ready },
-    { label: "Completed Today", value: completedToday },
-  ];
+  const stats = useMemo(() => {
+    if (role === "tech") {
+      return [
+        { label: "My Jobs", value: allJobs.length },
+        { label: "My In Progress", value: allJobs.filter((j) => j.status === "in-progress").length },
+        { label: "My Completed Today", value: allJobs.filter((j) => j.status === "complete" && new Date(j.createdAt).toDateString() === today).length },
+      ];
+    }
+    if (role === "tinter") {
+      return [
+        { label: "Tint Jobs", value: allJobs.length },
+        { label: "Tint In Progress", value: allJobs.filter((j) => j.status === "in-progress").length },
+        { label: "Tint Completed Today", value: allJobs.filter((j) => j.status === "complete" && new Date(j.createdAt).toDateString() === today).length },
+      ];
+    }
+    // salesperson + manager
+    return [
+      { label: "Total Jobs", value: allJobs.length },
+      { label: "In Progress", value: allJobs.filter((j) => j.status === "in-progress").length },
+      { label: "Ready for Pickup", value: allJobs.filter((j) => j.status === "ready").length },
+      { label: "Completed Today", value: allJobs.filter((j) => j.status === "complete" && new Date(j.createdAt).toDateString() === today).length },
+    ];
+  }, [allJobs, role, today]);
 
   const selectStyle: React.CSSProperties = {
     padding: "8px 10px",
@@ -176,7 +209,7 @@ export default function Dashboard() {
         </select>
         <select style={selectStyle} value={filterTech} onChange={(e) => setFilterTech(e.target.value)}>
           <option value="all">All Techs</option>
-          {technicians.map((t) => <option key={t} value={t}>{t}</option>)}
+          {techNames.map((t) => <option key={t} value={t}>{t}</option>)}
         </select>
         <input type="date" style={selectStyle} value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} title="From date" />
         <span style={{ color: "var(--color-text-muted)", fontSize: 12 }}>to</span>

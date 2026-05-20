@@ -1,13 +1,15 @@
 import "./styles/globals.css";
 import { useState, useRef, useEffect, createContext, useContext } from "react";
 import { Route, Switch, useLocation, Link } from "wouter";
-import { LayoutDashboard, ClipboardList, MessageSquare, Columns3, Search, Bell } from "lucide-react";
+import { LayoutDashboard, ClipboardList, MessageSquare, Columns3, Search, Bell, LogOut } from "lucide-react";
 import { getDMs, getBoardMessages, getJobs } from "@/data/store";
 import { ToastProvider } from "@/components/Toast";
+import { AuthProvider, useAuth } from "@/contexts/AuthContext";
 import Dashboard from "@/views/Dashboard";
 import JobDetail from "@/views/JobDetail";
 import Messages from "@/views/Messages";
 import Board from "@/views/Board";
+import Login from "@/views/Login";
 
 // Search context so Dashboard can read the global search query
 export const SearchContext = createContext<{ query: string }>({ query: "" });
@@ -26,10 +28,11 @@ const navItems = [
 
 function Sidebar() {
   const [location] = useLocation();
+  const { currentUser, logout } = useAuth();
 
   // Unread DM count
   const dms = getDMs();
-  const unreadCount = dms.filter((m) => m.toUser === "You" && !m.read).length;
+  const unreadCount = dms.filter((m) => m.toUser === (currentUser?.name || "You") && !m.read).length;
 
   return (
     <nav
@@ -100,6 +103,50 @@ function Sidebar() {
           </Link>
         );
       })}
+
+      {/* Spacer */}
+      <div style={{ flex: 1 }} />
+
+      {/* User avatar + logout at bottom */}
+      {currentUser && (
+        <div style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 6, paddingBottom: 16 }}>
+          <div
+            title={currentUser.name}
+            style={{
+              width: 34,
+              height: 34,
+              borderRadius: "50%",
+              background: "var(--color-accent)",
+              color: "#fff",
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              fontSize: 12,
+              fontWeight: 700,
+              fontFamily: "var(--font-body)",
+            }}
+          >
+            {currentUser.initials}
+          </div>
+          <button
+            onClick={logout}
+            title="Logout"
+            style={{
+              width: 34,
+              height: 34,
+              display: "flex",
+              alignItems: "center",
+              justifyContent: "center",
+              background: "none",
+              border: "none",
+              cursor: "pointer",
+              borderRadius: 8,
+            }}
+          >
+            <LogOut size={16} color="var(--color-text-muted)" />
+          </button>
+        </div>
+      )}
     </nav>
   );
 }
@@ -115,7 +162,6 @@ function NotificationBell() {
   type NotifItem = { id: string; text: string; time: string };
   const notifs: NotifItem[] = [];
 
-  // Recent job status (use createdAt as proxy — in real app we'd track status changes)
   jobs.slice(0, 5).forEach((j) => {
     notifs.push({
       id: "job-" + j.id,
@@ -124,7 +170,6 @@ function NotificationBell() {
     });
   });
 
-  // Recent board messages
   boardMsgs
     .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
     .slice(0, 5)
@@ -136,11 +181,9 @@ function NotificationBell() {
       });
     });
 
-  // Sort all by time desc, take 5
   notifs.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
   const top5 = notifs.slice(0, 5);
 
-  // Close on outside click
   useEffect(() => {
     function handleClick(e: MouseEvent) {
       if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
@@ -228,11 +271,10 @@ function NotificationBell() {
   );
 }
 
-function App() {
+function AuthenticatedApp() {
   const [searchQuery, setSearchQuery] = useState("");
 
   return (
-    <ToastProvider>
     <SearchContext.Provider value={{ query: searchQuery }}>
       <div style={{ display: "flex", minHeight: "100vh" }}>
         <Sidebar />
@@ -300,7 +342,22 @@ function App() {
         </div>
       </div>
     </SearchContext.Provider>
-    </ToastProvider>
+  );
+}
+
+function AppGate() {
+  const { currentUser } = useAuth();
+  if (!currentUser) return <Login />;
+  return <AuthenticatedApp />;
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <ToastProvider>
+        <AppGate />
+      </ToastProvider>
+    </AuthProvider>
   );
 }
 

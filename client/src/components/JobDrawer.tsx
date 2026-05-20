@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react";
 import { saveJob, getJobs, type Job, type PartsLine } from "@/data/store";
 import { ChevronDown, X, Plus, Trash2 } from "lucide-react";
+import { getSellers, getTechs, getTinters } from "@/data/users";
 
-const technicians = [
-  "Habibi", "Maro", "Luis Jr", "Ivan", "Eric", "Dale", "Gary", "Angel", "Jimmy", "Big Junior", "Manuel",
-];
-const salespeople = ["Mazin", "Frank", "Oscar", "Nasser", "Luis", "Adam"];
+const sellers = getSellers();
+const techs = getTechs();
+const tinters = getTinters();
 const serviceOptions = ["Head Unit", "Speakers", "Amplifier", "Subwoofer", "Remote Start", "Window Tint", "Other"];
 
 interface Props {
@@ -91,6 +91,7 @@ export default function JobDrawer({ open, onClose, editJob }: Props) {
   const [partsLines, setPartsLines] = useState<{ partNum: string; description: string; qty: number }[]>([]);
 
   const [tech, setTech] = useState("");
+  const [tinter, setTinter] = useState("");
   const [salesperson, setSalesperson] = useState("");
   const [promiseDate, setPromiseDate] = useState("");
 
@@ -111,6 +112,7 @@ export default function JobDrawer({ open, onClose, editJob }: Props) {
       setServices([...editJob.serviceTypes]);
       setPartsLines(editJob.partsLines.map((p) => ({ partNum: (p as any).partNumber || "", description: p.description, qty: p.qty })));
       setTech(editJob.techAssigned);
+      setTinter(editJob.tinterAssigned || "");
       setSalesperson(editJob.salesperson);
       setPromiseDate("");
       setNotes(editJob.notes);
@@ -119,7 +121,7 @@ export default function JobDrawer({ open, onClose, editJob }: Props) {
       setCustomerName(""); setPhone(""); setEmail("");
       setYear(""); setMake(""); setModel(""); setColor(""); setFactoryAmp(false);
       setServices([]); setPartsLines([]);
-      setTech(""); setSalesperson(""); setPromiseDate("");
+      setTech(""); setTinter(""); setSalesperson(""); setPromiseDate("");
       setNotes(""); setDamage("");
     }
   }, [editJob, open]);
@@ -150,6 +152,7 @@ export default function JobDrawer({ open, onClose, editJob }: Props) {
         vehicle: { year, make, model },
         serviceTypes: services,
         techAssigned: tech,
+        tinterAssigned: tinter,
         salesperson,
         partsLines: partsLines.map((p) => ({ partNumber: p.partNum, description: p.description || p.partNum, qty: p.qty })),
         notes,
@@ -172,6 +175,7 @@ export default function JobDrawer({ open, onClose, editJob }: Props) {
       vehicle: { year, make, model },
       serviceTypes: services,
       techAssigned: tech,
+      tinterAssigned: tinter,
       salesperson,
       partsLines: partsLines.map((p) => ({ partNumber: p.partNum, description: p.description || p.partNum, qty: p.qty })),
       createdAt: new Date().toISOString(),
@@ -187,7 +191,7 @@ export default function JobDrawer({ open, onClose, editJob }: Props) {
     setCustomerName(""); setPhone(""); setEmail("");
     setYear(""); setMake(""); setModel(""); setColor(""); setFactoryAmp(false);
     setServices([]); setPartsLines([]);
-    setTech(""); setSalesperson(""); setPromiseDate("");
+    setTech(""); setTinter(""); setSalesperson(""); setPromiseDate("");
     setNotes(""); setDamage("");
   }
 
@@ -368,14 +372,23 @@ export default function JobDrawer({ open, onClose, editJob }: Props) {
                 <label style={labelStyle}>Technician</label>
                 <select style={inputStyle} value={tech} onChange={(e) => setTech(e.target.value)}>
                   <option value="">-- Select --</option>
-                  {technicians.map((t) => <option key={t} value={t}>{t}</option>)}
+                  {techs.map((t) => <option key={t.id} value={t.name}>{t.name}</option>)}
                 </select>
               </div>
+              {services.includes("Window Tint") && (
+                <div>
+                  <label style={labelStyle}>Tinter</label>
+                  <select style={inputStyle} value={tinter} onChange={(e) => setTinter(e.target.value)}>
+                    <option value="">-- Select --</option>
+                    {tinters.map((t) => <option key={t.id} value={t.name}>{t.name}</option>)}
+                  </select>
+                </div>
+              )}
               <div>
                 <label style={labelStyle}>Salesperson</label>
                 <select style={inputStyle} value={salesperson} onChange={(e) => setSalesperson(e.target.value)}>
                   <option value="">-- Select --</option>
-                  {salespeople.map((s) => <option key={s} value={s}>{s}</option>)}
+                  {sellers.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
                 </select>
               </div>
               <div>

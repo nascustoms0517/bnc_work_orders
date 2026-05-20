@@ -15,6 +15,7 @@ export interface Job {
   vehicle: { year: string; make: string; model: string };
   serviceTypes: string[];
   techAssigned: string;
+  tinterAssigned: string;
   salesperson: string;
   partsLines: PartsLine[];
   createdAt: string;
@@ -139,6 +140,7 @@ function seedJobs(): Job[] {
       vehicle: { year: "2021", make: "Toyota", model: "Camry" },
       serviceTypes: ["Window Tint"],
       techAssigned: "Habibi",
+      tinterAssigned: "",
       salesperson: "Mazin",
       partsLines: [{ partNumber: "CT-20", description: "Ceramic Tint Roll 20%", qty: 1 }],
       createdAt: new Date().toISOString(),
@@ -155,6 +157,7 @@ function seedJobs(): Job[] {
       vehicle: { year: "2019", make: "Ford", model: "F-150" },
       serviceTypes: ["PPF", "Ceramic Coating"],
       techAssigned: "Maro",
+      tinterAssigned: "",
       salesperson: "Frank",
       partsLines: [
         { partNumber: "PPF-H1", description: "PPF Full Hood", qty: 1 },
@@ -174,6 +177,7 @@ function seedJobs(): Job[] {
       vehicle: { year: "2023", make: "BMW", model: "X5" },
       serviceTypes: ["Vinyl Wrap"],
       techAssigned: "Ivan",
+      tinterAssigned: "",
       salesperson: "Oscar",
       partsLines: [
         { partNumber: "VW-SB60", description: "Satin Black Vinyl 60ft", qty: 1 },
