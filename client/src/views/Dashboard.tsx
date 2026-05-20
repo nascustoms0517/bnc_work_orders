@@ -1,5 +1,8 @@
+import { useState } from "react";
 import { getJobs, type Job } from "@/data/store";
 import { useLocation } from "wouter";
+import JobDrawer from "@/components/JobDrawer";
+import { Plus } from "lucide-react";
 
 const statusColors: Record<Job["status"], { bg: string; text: string }> = {
   intake: { bg: "#3A3A3A", text: "#AAAAAA" },
@@ -16,8 +19,15 @@ const statusLabel: Record<Job["status"], string> = {
 };
 
 export default function Dashboard() {
+  const [drawerOpen, setDrawerOpen] = useState(false);
+  const [refreshKey, setRefreshKey] = useState(0);
   const jobs = getJobs();
   const [, navigate] = useLocation();
+
+  function handleDrawerClose() {
+    setDrawerOpen(false);
+    setRefreshKey((k) => k + 1);
+  }
 
   const totalJobs = jobs.length;
   const inProgress = jobs.filter((j) => j.status === "in-progress").length;
@@ -36,17 +46,40 @@ export default function Dashboard() {
   ];
 
   return (
-    <div>
-      <h1
-        style={{
-          fontFamily: "var(--font-heading)",
-          fontSize: 28,
-          marginBottom: 24,
-          color: "var(--color-text)",
-        }}
-      >
-        Dashboard
-      </h1>
+    <div key={refreshKey}>
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 }}>
+        <h1
+          style={{
+            fontFamily: "var(--font-heading)",
+            fontSize: 28,
+            color: "var(--color-text)",
+            margin: 0,
+          }}
+        >
+          Dashboard
+        </h1>
+        <button
+          onClick={() => setDrawerOpen(true)}
+          style={{
+            display: "flex",
+            alignItems: "center",
+            gap: 6,
+            padding: "10px 16px",
+            background: "var(--color-accent)",
+            color: "#fff",
+            border: "none",
+            borderRadius: 8,
+            fontSize: 14,
+            fontWeight: 600,
+            fontFamily: "var(--font-body)",
+            cursor: "pointer",
+          }}
+        >
+          <Plus size={16} /> Add Job
+        </button>
+      </div>
+
+      <JobDrawer open={drawerOpen} onClose={handleDrawerClose} />
 
       {/* Stat Cards */}
       <div
