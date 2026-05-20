@@ -3,9 +3,6 @@ import { saveJob, getJobs, type Job, type PartsLine } from "@/data/store";
 import { ChevronDown, X, Plus, Trash2 } from "lucide-react";
 import { getSellers, getTechs, getTinters } from "@/data/users";
 
-const sellers = getSellers();
-const techs = getTechs();
-const tinters = getTinters();
 const serviceOptions = ["Head Unit", "Speakers", "Amplifier", "Subwoofer", "Remote Start", "Window Tint", "Other"];
 
 interface Props {
@@ -372,7 +369,7 @@ export default function JobDrawer({ open, onClose, editJob }: Props) {
                 <label style={labelStyle}>Technician</label>
                 <select style={inputStyle} value={tech} onChange={(e) => setTech(e.target.value)}>
                   <option value="">-- Select --</option>
-                  {techs.map((t) => <option key={t.id} value={t.name}>{t.name}</option>)}
+                  {getTechs().map((t) => <option key={t.id} value={t.name}>{t.name}</option>)}
                 </select>
               </div>
               {services.includes("Window Tint") && (
@@ -380,7 +377,7 @@ export default function JobDrawer({ open, onClose, editJob }: Props) {
                   <label style={labelStyle}>Tinter</label>
                   <select style={inputStyle} value={tinter} onChange={(e) => setTinter(e.target.value)}>
                     <option value="">-- Select --</option>
-                    {tinters.map((t) => <option key={t.id} value={t.name}>{t.name}</option>)}
+                    {getTinters().map((t) => <option key={t.id} value={t.name}>{t.name}</option>)}
                   </select>
                 </div>
               )}
@@ -388,7 +385,7 @@ export default function JobDrawer({ open, onClose, editJob }: Props) {
                 <label style={labelStyle}>Salesperson</label>
                 <select style={inputStyle} value={salesperson} onChange={(e) => setSalesperson(e.target.value)}>
                   <option value="">-- Select --</option>
-                  {sellers.map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
+                  {getSellers().map((s) => <option key={s.id} value={s.name}>{s.name}</option>)}
                 </select>
               </div>
               <div>

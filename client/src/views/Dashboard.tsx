@@ -22,8 +22,7 @@ const statusLabel: Record<Job["status"], string> = {
   complete: "Complete",
 };
 
-const techUsers = getTechs();
-const techNames = techUsers.map((t) => t.name);
+
 
 type SortKey = "jobNumber" | "customerName" | "vehicle" | "status" | "techAssigned";
 type SortDir = "asc" | "desc";
@@ -209,7 +208,7 @@ export default function Dashboard() {
         </select>
         <select style={selectStyle} value={filterTech} onChange={(e) => setFilterTech(e.target.value)}>
           <option value="all">All Techs</option>
-          {techNames.map((t) => <option key={t} value={t}>{t}</option>)}
+          {getTechs().map((t) => <option key={t.id} value={t.name}>{t.name}</option>)}
         </select>
         <input type="date" style={selectStyle} value={filterDateFrom} onChange={(e) => setFilterDateFrom(e.target.value)} title="From date" />
         <span style={{ color: "var(--color-text-muted)", fontSize: 12 }}>to</span>

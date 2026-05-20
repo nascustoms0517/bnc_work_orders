@@ -1,15 +1,17 @@
 import "./styles/globals.css";
 import { useState, useRef, useEffect, createContext, useContext } from "react";
 import { Route, Switch, useLocation, Link } from "wouter";
-import { LayoutDashboard, ClipboardList, MessageSquare, Columns3, Search, Bell, LogOut } from "lucide-react";
+import { LayoutDashboard, ClipboardList, MessageSquare, Columns3, Search, Bell, LogOut, Settings as SettingsIcon } from "lucide-react";
 import { getDMs, getBoardMessages, getJobs } from "@/data/store";
 import { ToastProvider } from "@/components/Toast";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
+import { initUsers } from "@/data/users";
 import Dashboard from "@/views/Dashboard";
 import JobDetail from "@/views/JobDetail";
 import Messages from "@/views/Messages";
 import Board from "@/views/Board";
 import Login from "@/views/Login";
+import Settings from "@/views/Settings";
 
 // Search context so Dashboard can read the global search query
 export const SearchContext = createContext<{ query: string }>({ query: "" });
@@ -106,6 +108,22 @@ function Sidebar() {
 
       {/* Spacer */}
       <div style={{ flex: 1 }} />
+
+      {/* Settings gear — managers only */}
+      {currentUser && currentUser.role === "manager" && (
+        <Link href="/settings">
+          <div
+            style={{
+              width: 40, height: 40, display: "flex", alignItems: "center", justifyContent: "center",
+              borderRadius: 8, background: location === "/settings" ? "rgba(232,93,36,0.12)" : "transparent",
+              cursor: "pointer", marginBottom: 4,
+            }}
+            title="Settings"
+          >
+            <SettingsIcon size={20} color={location === "/settings" ? "var(--color-accent)" : "var(--color-text-muted)"} />
+          </div>
+        </Link>
+      )}
 
       {/* User avatar + logout at bottom */}
       {currentUser && (
@@ -337,6 +355,7 @@ function AuthenticatedApp() {
               <Route path="/work-orders/:id" component={JobDetail} />
               <Route path="/messages" component={Messages} />
               <Route path="/board" component={Board} />
+              <Route path="/settings" component={Settings} />
             </Switch>
           </main>
         </div>
@@ -350,6 +369,9 @@ function AppGate() {
   if (!currentUser) return <Login />;
   return <AuthenticatedApp />;
 }
+
+// Initialize users in localStorage on first load
+initUsers();
 
 function App() {
   return (
