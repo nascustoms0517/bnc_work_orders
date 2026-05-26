@@ -1,0 +1,4 @@
+.code
+bnc.db
+bnc.db-shm
+bnc.db-wal

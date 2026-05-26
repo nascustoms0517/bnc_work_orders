@@ -1,49 +1,74 @@
-import { createContext, useContext, useState, type ReactNode } from "react";
-import { type User } from "@/data/users";
+import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { getUsers } from '../data/api';
+
+interface User {
+  id: string;
+  name: string;
+  initials: string;
+  role: string;
+  canSell: boolean;
+  username: string;
+  phone?: string;
+}
 
 interface AuthContextType {
   currentUser: User | null;
-  login: (user: User) => void;
+  login: (username: string, password: string) => Promise<boolean>;
   logout: () => void;
+  loading: boolean;
 }
 
-const AuthContext = createContext<AuthContextType>({
-  currentUser: null,
-  login: () => {},
-  logout: () => {},
-});
-
-const STORAGE_KEY = "bnc_current_user";
-
-function readCurrentUser(): User | null {
-  try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : null;
-  } catch {
-    return null;
-  }
-}
+const AuthContext = createContext<AuthContextType | null>(null);
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [currentUser, setCurrentUser] = useState<User | null>(() => readCurrentUser());
+  const [currentUser, setCurrentUser] = useState<User | null>(null);
+  const [loading, setLoading] = useState(true);
 
-  function login(user: User) {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(user));
-    setCurrentUser(user);
-  }
+  // Restore session on page load
+  useEffect(() => {
+    const stored = localStorage.getItem('bnc_current_user');
+    if (stored) {
+      try {
+        setCurrentUser(JSON.parse(stored) as User);
+      } catch {
+        localStorage.removeItem('bnc_current_user');
+      }
+    }
+    setLoading(false);
+  }, []);
 
-  function logout() {
-    localStorage.removeItem(STORAGE_KEY);
+  const login = async (username: string, password: string): Promise<boolean> => {
+    try {
+      const users = await getUsers();
+      const match = users.find(
+        (u: any) => u.username === username && u.password === password
+      );
+      if (match) {
+        setCurrentUser(match as User);
+        localStorage.setItem('bnc_current_user', JSON.stringify(match));
+        return true;
+      }
+      return false;
+    } catch (err) {
+      console.error('Login failed:', err);
+      return false;
+    }
+  };
+
+  const logout = () => {
     setCurrentUser(null);
-  }
+    localStorage.removeItem('bnc_current_user');
+  };
 
   return (
-    <AuthContext.Provider value={{ currentUser, login, logout }}>
+    <AuthContext.Provider value={{ currentUser, login, logout, loading }}>
       {children}
     </AuthContext.Provider>
   );
 }
 
 export function useAuth() {
-  return useContext(AuthContext);
+  const ctx = useContext(AuthContext);
+  if (!ctx) throw new Error('useAuth must be used within AuthProvider');
+  return ctx;
 }
