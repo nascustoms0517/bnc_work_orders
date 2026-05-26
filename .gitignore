@@ -110,3 +110,12 @@ temp/
 
 # Manus version file (auto-generated, not part of source)
 client/public/__manus__/version.json
+
+# Server backend source should be committed
+!/server/
+!/server/**
+/server/node_modules/
+/server/.env
+/server/*.db
+/server/*.sqlite
+/server/*.sqlite3

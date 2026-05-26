@@ -1,0 +1,15 @@
+{
+  "name": "bnc-work-orders-server",
+  "version": "1.0.0",
+  "description": "Express backend server for the BNC Work Orders app",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js"
+  },
+  "dependencies": {
+    "better-sqlite3": "latest",
+    "cors": "latest",
+    "dotenv": "latest",
+    "express": "latest"
+  }
+}
