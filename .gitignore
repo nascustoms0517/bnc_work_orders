@@ -113,3 +113,5 @@ client/public/__manus__/version.json
 /server/*.db
 /server/*.sqlite
 /server/*.sqlite3
+node_modules/
+client/.env
