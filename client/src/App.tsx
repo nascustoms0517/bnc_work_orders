@@ -2,10 +2,9 @@ import "./styles/globals.css";
 import { useState, useRef, useEffect, createContext, useContext } from "react";
 import { Route, Switch, useLocation, Link } from "wouter";
 import { LayoutDashboard, ClipboardList, MessageSquare, Columns3, Search, Bell, LogOut, Settings as SettingsIcon } from "lucide-react";
-import { getDMs, getBoardMessages, getJobs } from "@/data/store";
+import { getDMs, getBoardMessages, getJobs } from "@/data/api";
 import { ToastProvider } from "@/components/Toast";
 import { AuthProvider, useAuth } from "@/contexts/AuthContext";
-import { initUsers } from "@/data/users";
 import Dashboard from "@/views/Dashboard";
 import JobDetail from "@/views/JobDetail";
 import Messages from "@/views/Messages";
@@ -31,15 +30,18 @@ const navItems = [
 function Sidebar() {
   const [location] = useLocation();
   const { currentUser, logout } = useAuth();
+  const [unreadCount, setUnreadCount] = useState(0);
 
-  // Unread DM count — uses both legacy name field and new userId field
-  const dms = getDMs();
-  const myId = currentUser?.id || "";
-  const myName = currentUser?.name || "";
-  const unreadCount = dms.filter((m) => {
-    const isToMe = (m as any).toUserId === myId || m.toUser === myName;
-    return isToMe && !m.read;
-  }).length;
+  useEffect(() => {
+    if (!currentUser) return;
+    getDMs(currentUser.id).then((dms: any[]) => {
+      const count = dms.filter((m) => {
+        const isToMe = m.toUserId === currentUser.id || m.toUser === currentUser.name;
+        return isToMe && !m.read;
+      }).length;
+      setUnreadCount(count);
+    }).catch(() => {});
+  }, [currentUser]);
 
   return (
     <nav
@@ -176,36 +178,25 @@ function Sidebar() {
 
 function NotificationBell() {
   const [open, setOpen] = useState(false);
+  const [notifs, setNotifs] = useState<{ id: string; text: string; time: string }[]>([]);
   const ref = useRef<HTMLDivElement>(null);
 
-  // Build recent notifications from jobs + board messages
-  const jobs = getJobs();
-  const boardMsgs = getBoardMessages();
-
-  type NotifItem = { id: string; text: string; time: string };
-  const notifs: NotifItem[] = [];
-
-  jobs.slice(0, 5).forEach((j) => {
-    notifs.push({
-      id: "job-" + j.id,
-      text: `Job #${j.jobNumber} — ${j.customerName} → ${j.status}`,
-      time: j.createdAt,
-    });
-  });
-
-  boardMsgs
-    .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
-    .slice(0, 5)
-    .forEach((m) => {
-      notifs.push({
-        id: "board-" + m.id,
-        text: `${m.fromUser} posted: "${m.body.slice(0, 40)}${m.body.length > 40 ? "…" : ""}"`,
-        time: m.timestamp,
+  useEffect(() => {
+    Promise.all([getJobs(), getBoardMessages()]).then(([jobs, boardMsgs]) => {
+      const items: { id: string; text: string; time: string }[] = [];
+      (jobs as any[]).slice(0, 5).forEach((j) => {
+        items.push({ id: "job-" + j.id, text: `Job #${j.jobNumber} — ${j.customerName} → ${j.status}`, time: j.createdAt });
       });
-    });
-
-  notifs.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
-  const top5 = notifs.slice(0, 5);
+      (boardMsgs as any[])
+        .sort((a, b) => new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime())
+        .slice(0, 5)
+        .forEach((m) => {
+          items.push({ id: "board-" + m.id, text: `${m.fromUser} posted: "${m.body.slice(0, 40)}${m.body.length > 40 ? "…" : ""}"`, time: m.timestamp });
+        });
+      items.sort((a, b) => new Date(b.time).getTime() - new Date(a.time).getTime());
+      setNotifs(items.slice(0, 5));
+    }).catch(() => {});
+  }, []);
 
   useEffect(() => {
     function handleClick(e: MouseEvent) {
@@ -233,7 +224,7 @@ function NotificationBell() {
         }}
       >
         <Bell size={18} color="var(--color-text-muted)" />
-        {top5.length > 0 && (
+          {notifs.length > 0 && (
           <div
             style={{
               position: "absolute",
@@ -266,12 +257,12 @@ function NotificationBell() {
           <div style={{ padding: "12px 16px", borderBottom: "1px solid var(--color-border)", fontSize: 13, fontWeight: 600, color: "var(--color-text)" }}>
             Notifications
           </div>
-          {top5.length === 0 && (
+          {notifs.length === 0 && (
             <div style={{ padding: 20, textAlign: "center", color: "var(--color-text-muted)", fontSize: 13 }}>
               No recent activity.
             </div>
           )}
-          {top5.map((n) => (
+          {notifs.map((n) => (
             <div
               key={n.id}
               style={{
@@ -375,14 +366,55 @@ function AppGate() {
   return <AuthenticatedApp />;
 }
 
-// Initialize users in localStorage on first load
-initUsers();
+function AppShell() {
+  const { currentUser, loading } = useAuth();
+  const [serverOk, setServerOk] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    const timeout = setTimeout(() => {
+      if (serverOk === null) setServerOk(false);
+    }, 5000);
+
+    getUsers()
+      .then(() => { setServerOk(true); clearTimeout(timeout); })
+      .catch(() => { setServerOk(false); clearTimeout(timeout); });
+
+    return () => clearTimeout(timeout);
+  }, []);
+
+  // Server unreachable
+  if (serverOk === false) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", flexDirection: "column", gap: 16, textAlign: "center", padding: 24 }}>
+        <div style={{ fontSize: 48 }}>⚠️</div>
+        <h1 style={{ color: "var(--color-text)", fontSize: 24, fontWeight: 600, margin: 0 }}>Cannot connect to server</h1>
+        <p style={{ color: "var(--color-text-muted)", margin: 0, maxWidth: 400 }}>Make sure the BNC server is running at {(import.meta as any).env?.VITE_API_URL || 'http://localhost:8080'}</p>
+      </div>
+    );
+  }
+
+  // Connecting spinner
+  if (serverOk === null || loading) {
+    return (
+      <div style={{ display: "flex", alignItems: "center", justifyContent: "center", minHeight: "100vh", flexDirection: "column", gap: 16, textAlign: "center" }}>
+        <div style={{ width: 40, height: 40, border: "2px solid var(--color-border)", borderTop: "2px solid var(--color-accent)", borderRadius: "50%", animation: "spin 1s linear infinite" }} />
+        <p style={{ color: "var(--color-text-muted)", margin: 0 }}>Connecting to BNC server...</p>
+        <style>{`@keyframes spin { to { transform: rotate(360deg); } }`}</style>
+      </div>
+    );
+  }
+
+  // Server reachable, show main app
+  return <AppGate />;
+}
+
+
 
 function App() {
   return (
     <AuthProvider>
       <ToastProvider>
-        <AppGate />
+        <AppShell />
       </ToastProvider>
     </AuthProvider>
   );
